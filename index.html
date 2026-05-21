@@ -1,817 +1,791 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="Los Guayos Digital - Taxi Oliveros | Delivery, Encomiendas y Moto Taxi 24/7 en Carabobo">
-    <meta name="theme-color" content="#8B5A2B">
-    <title>Los Guayos Digital • Taxi Oliveros</title>
-    <style>
-        :root {
-            --primary-brown: #8B5A2B;     /* Marrón principal del logo */
-            --dark-brown: #5C4033;        /* Marrón oscuro elegante */
-            --metallic: #EDE9E3;          /* Tono metálico claro para interfaz */
-            --light-bg: #FAF7F2;          /* Blanco cálido con toque metálico */
-            --text-dark: #2C2C2C;
-            --wa-green: #25D366;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--light-bg);
-            color: var(--text-dark);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-        
-        /* HEADER - Minimalista y metálico */
-        header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            box-shadow: 0 2px 12px rgba(139, 90, 43, 0.12);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            padding: 14px 20px;
-        }
-        
-        .header-content {
-            max-width: 1280px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        
-        .logo {
-            height: 52px;
-            width: auto;
-            object-fit: contain;
-            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-        }
-        
-        .brand-info h1 {
-            font-size: 1.45rem;
-            font-weight: 700;
-            color: var(--primary-brown);
-            letter-spacing: -0.5px;
-        }
-        
-        .slogan {
-            font-size: 0.82rem;
-            color: var(--dark-brown);
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
-        
-        .horario {
-            background: var(--dark-brown);
-            color: white;
-            font-size: 0.78rem;
-            font-weight: 700;
-            padding: 6px 18px;
-            border-radius: 9999px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 3px 8px rgba(92, 64, 51, 0.25);
-        }
-        
-        /* HERO - Minimalista y profesional */
-        .hero {
-            background: linear-gradient(180deg, #FFFFFF 0%, var(--metallic) 100%);
-            color: var(--text-dark);
-            padding: 48px 20px 68px;
-            text-align: center;
-            position: relative;
-        }
-        
-        .hero-content {
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-        
-        .hero img.logo-hero {
-            height: 118px;
-            width: auto;
-            margin-bottom: 20px;
-            filter: drop-shadow(0 12px 20px rgba(139, 90, 43, 0.18));
-        }
-        
-        .hero h1 {
-            font-size: 2.4rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--primary-brown);
-            letter-spacing: -1px;
-        }
-        
-        .hero .slogan-hero {
-            font-size: 1.3rem;
-            font-weight: 500;
-            color: var(--dark-brown);
-            margin-bottom: 32px;
-        }
-        
-        .hero-cta {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            max-width: 340px;
-            margin: 0 auto;
-        }
-        
-        .btn {
-            font-weight: 700;
-            font-size: 1.15rem;
-            padding: 18px 28px;
-            border-radius: 9999px;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 6px 16px rgba(139, 90, 43, 0.2);
-        }
-        
-        .btn-primary {
-            background: var(--primary-brown);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 24px rgba(139, 90, 43, 0.3);
-        }
-        
-        .btn-wa {
-            background: var(--wa-green);
-            color: white;
-        }
-        
-        /* SECCIONES */
-        section {
-            padding: 48px 20px;
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-        
-        .section-title {
-            font-size: 1.65rem;
-            font-weight: 700;
-            margin-bottom: 28px;
-            text-align: center;
-            color: var(--primary-brown);
-        }
-        
-        /* TARJETAS DE SERVICIOS - Contenido controlado */
-        .services-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-        }
-        
-        .service-card {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 8px 20px rgba(139, 90, 43, 0.08);
-            border: 1px solid var(--metallic);
-            transition: transform 0.3s ease;
-        }
-        
-        .service-card:hover {
-            transform: translateY(-4px);
-        }
-        
-        .service-card .icon {
-            height: 88px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3.2rem;
-            background: linear-gradient(135deg, var(--primary-brown), var(--dark-brown));
-            color: white;
-        }
-        
-        .service-card .content {
-            padding: 24px;
-        }
-        
-        .service-card h3 {
-            font-size: 1.4rem;
-            margin-bottom: 10px;
-            color: var(--dark-brown);
-        }
-        
-        .service-card p {
-            color: #555;
-            font-size: 1rem;
-            margin-bottom: 24px;
-            line-height: 1.55;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            hyphens: auto;
-        }
-        
-        /* ALIADOS COMERCIALES */
-        .allies-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-        }
-        
-        .ally-card {
-            background: white;
-            border-radius: 20px;
-            padding: 24px;
-            box-shadow: 0 8px 20px rgba(139, 90, 43, 0.08);
-            border: 1px solid var(--metallic);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-        
-        .ally-card:hover {
-            transform: translateY(-4px);
-        }
-        
-        .ally-card img {
-            height: 92px;
-            width: 92px;
-            object-fit: contain;
-            border-radius: 12px;
-            margin-bottom: 18px;
-            background: #fff;
-        }
-        
-        .ally-card h4 {
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-            color: var(--dark-brown);
-        }
-        
-        .ally-card p {
-            font-size: 0.98rem;
-            color: #555;
-            margin-bottom: 24px;
-            line-height: 1.55;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            flex: 1;
-        }
-        
-        /* TRABAJA CON NOSOTROS - Minimalista */
-        .talent-section {
-            background: white;
-            border-radius: 24px;
-            padding: 40px 20px;
-            box-shadow: 0 8px 20px rgba(139, 90, 43, 0.08);
-        }
-        
-        .benefits-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-        
-        .benefit-card {
-            background: var(--metallic);
-            padding: 22px;
-            border-radius: 16px;
-        }
-        
-        .benefit-card h4 {
-            color: var(--primary-brown);
-            margin-bottom: 8px;
-        }
-        
-        .requirements {
-            background: var(--metallic);
-            padding: 28px 24px;
-            border-radius: 20px;
-            margin-bottom: 32px;
-        }
-        
-        .requirements ul {
-            list-style: none;
-        }
-        
-        .requirements li {
-            padding: 14px 0;
-            border-bottom: 1px solid rgba(139, 90, 43, 0.15);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.02rem;
-        }
-        
-        .requirements li:last-child {
-            border-bottom: none;
-        }
-        
-        /* FORMULARIO */
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 0.98rem;
-            color: var(--dark-brown);
-        }
-        
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 16px 18px;
-            border: 2px solid #E5E0D8;
-            border-radius: 14px;
-            font-size: 1.02rem;
-            background: white;
-            transition: all 0.3s;
-        }
-        
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            border-color: var(--primary-brown);
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(139, 90, 43, 0.15);
-        }
-        
-        /* BOTÓN FLOTANTE WHATSAPP */
-        .fab-wa {
-            position: fixed;
-            bottom: 92px;
-            right: 20px;
-            width: 64px;
-            height: 64px;
-            background: var(--wa-green);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 28px rgba(37, 211, 102, 0.35);
-            z-index: 9999;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        
-        /* MENÚ INFERIOR TIPO APP - Metálico */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(12px);
-            box-shadow: 0 -4px 20px rgba(139, 90, 43, 0.15);
-            z-index: 1100;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0 6px;
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-        
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #777;
-            font-size: 0.78rem;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .nav-item.active {
-            color: var(--primary-brown);
-        }
-        
-        .nav-item span {
-            font-size: 1.65rem;
-            margin-bottom: 3px;
-        }
-        
-        /* RESPONSIVE */
-        @media (min-width: 768px) {
-            .services-grid,
-            .allies-grid {
-                grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            }
-            
-            .benefits-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .hero {
-                padding: 68px 32px 80px;
-            }
-            
-            .hero h1 {
-                font-size: 3rem;
-            }
-            
-            section {
-                padding: 64px 32px;
-            }
-        }
-        
-        /* Animación sutil metálica */
-        @keyframes metallicPulse {
-            0% { box-shadow: 0 8px 20px rgba(139, 90, 43, 0.12); }
-            50% { box-shadow: 0 12px 28px rgba(139, 90, 43, 0.22); }
-            100% { box-shadow: 0 8px 20px rgba(139, 90, 43, 0.12); }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa Electoral · Concertación Carabobo</title>
+ 
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;500;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+ 
+  <style>
+    /* ─── RESET & TOKENS ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    :root {
+      --blue:      #0a2463;
+      --blue-mid:  #1a3a8f;
+      --blue-lite: #2255c8;
+      --green:     #1b8a4c;
+      --green-lit: #27c06a;
+      --white:     #f4f7ff;
+      --glass:     rgba(255,255,255,0.07);
+      --glass-bd:  rgba(255,255,255,0.15);
+      --shadow:    0 8px 32px rgba(0,0,0,0.45);
+      --panel-w:   340px;
+      --header-h:  64px;
+      --radius:    14px;
+      --font-head: 'Barlow Condensed', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+ 
+    html, body {
+      height: 100%;
+      background: #050d1f;
+      color: var(--white);
+      font-family: var(--font-body);
+      overflow: hidden;
+    }
+ 
+    /* ─── HEADER ───────────────────────────────────────────────────── */
+    #header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--header-h);
+      z-index: 1000;
+      background: linear-gradient(90deg, var(--blue) 0%, #0d1f55 60%, #0a2a1a 100%);
+      border-bottom: 1px solid var(--glass-bd);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 2px 24px rgba(0,0,0,0.6);
+    }
+ 
+    #header .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+ 
+    #header img.logo {
+      height: 46px;
+      filter: drop-shadow(0 0 8px rgba(39,192,106,0.4));
+    }
+ 
+    #header .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+    }
+ 
+    #header .brand-text span:first-child {
+      font-family: var(--font-head);
+      font-weight: 900;
+      font-size: 1.35rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--white);
+    }
+ 
+    #header .brand-text span:last-child {
+      font-family: var(--font-head);
+      font-weight: 300;
+      font-size: .8rem;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--green-lit);
+      margin-top: 2px;
+    }
+ 
+    #header .header-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+ 
+    #header .header-stat .val {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: var(--green-lit);
+      letter-spacing: .05em;
+    }
+ 
+    #header .header-stat .lbl {
+      font-size: .65rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      opacity: .6;
+    }
+ 
+    /* ─── LAYOUT ───────────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      height: 100%;
+      padding-top: var(--header-h);
+    }
+ 
+    /* ─── MAP ──────────────────────────────────────────────────────── */
+    #map {
+      flex: 1;
+      height: 100%;
+      z-index: 1;
+      background: #050d1f;
+    }
+ 
+    /* Leaflet tile override for dark look */
+    .leaflet-tile { filter: brightness(.55) saturate(.4) hue-rotate(190deg); }
+    .leaflet-container { background: #050d1f; }
+ 
+    /* ─── SIDE PANEL ───────────────────────────────────────────────── */
+    #panel {
+      position: fixed;
+      top: var(--header-h);
+      right: -360px;
+      width: var(--panel-w);
+      height: calc(100% - var(--header-h));
+      background: linear-gradient(160deg, rgba(10,36,99,0.92) 0%, rgba(5,20,50,0.97) 100%);
+      border-left: 1px solid var(--glass-bd);
+      backdrop-filter: blur(18px);
+      z-index: 900;
+      transition: right .4s cubic-bezier(.22,1,.36,1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: -6px 0 40px rgba(0,0,0,0.5);
+    }
+ 
+    #panel.open { right: 0; }
+ 
+    /* close button */
+    #panel-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--glass-bd);
+      border-radius: 50%;
+      background: var(--glass);
+      color: var(--white);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s, transform .2s;
+      z-index: 10;
+    }
+    #panel-close:hover { background: rgba(255,255,255,.15); transform: rotate(90deg); }
+ 
+    /* Panel hero */
+    #panel-hero {
+      position: relative;
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid var(--glass-bd);
+      background: linear-gradient(135deg, rgba(27,138,76,0.12) 0%, rgba(10,36,99,0.0) 60%);
+    }
+ 
+    #panel-flag {
+      width: 100%;
+      height: 110px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      border: 1px solid var(--glass-bd);
+    }
+ 
+    #panel-name {
+      font-family: var(--font-head);
+      font-weight: 900;
+      font-size: 2rem;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--white);
+      line-height: 1;
+    }
+ 
+    #panel-capital {
+      font-size: .75rem;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--green-lit);
+      margin-top: 4px;
+      opacity: .85;
+    }
+ 
+    /* Stats grid */
+    #panel-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 20px 20px;
+    }
+ 
+    .stat-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s, background .2s;
+    }
+ 
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--green) 0%, var(--blue-lite) 100%);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+ 
+    .stat-card:hover { background: rgba(255,255,255,.1); }
+    .stat-card:hover::before { opacity: 1; }
+ 
+    .stat-card .s-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+ 
+    .stat-card .s-val {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 1.55rem;
+      color: var(--white);
+      letter-spacing: .02em;
+    }
+ 
+    .stat-card .s-lbl {
+      font-size: .64rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(244,247,255,.45);
+    }
+ 
+    /* Panel footer brand */
+    #panel-footer {
+      margin-top: auto;
+      padding: 16px 20px;
+      border-top: 1px solid var(--glass-bd);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+ 
+    #panel-footer img {
+      height: 38px;
+      filter: drop-shadow(0 0 6px rgba(39,192,106,0.35));
+    }
+ 
+    #panel-footer span {
+      font-family: var(--font-head);
+      font-weight: 500;
+      font-size: .8rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      opacity: .55;
+    }
+ 
+    /* ─── MAP TOOLTIP ──────────────────────────────────────────────── */
+    .map-tooltip {
+      background: rgba(5,20,50,0.92) !important;
+      border: 1px solid rgba(39,192,106,0.4) !important;
+      border-radius: 8px !important;
+      color: var(--white) !important;
+      font-family: var(--font-head) !important;
+      font-weight: 700 !important;
+      font-size: .95rem !important;
+      letter-spacing: .08em !important;
+      text-transform: uppercase !important;
+      padding: 6px 12px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 12px rgba(39,192,106,0.15) !important;
+      backdrop-filter: blur(8px) !important;
+      white-space: nowrap !important;
+    }
+ 
+    .leaflet-tooltip-top.map-tooltip::before {
+      border-top-color: rgba(39,192,106,0.4) !important;
+    }
+ 
+    /* ─── HINT BADGE ───────────────────────────────────────────────── */
+    #hint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(5,20,50,0.88);
+      border: 1px solid var(--glass-bd);
+      border-radius: 30px;
+      padding: 8px 20px;
+      font-size: .72rem;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      opacity: .75;
+      z-index: 800;
+      pointer-events: none;
+      transition: opacity .5s;
+      backdrop-filter: blur(8px);
+    }
+    #hint.hidden { opacity: 0; }
+ 
+    /* ─── ATTRIBUTION ──────────────────────────────────────────────── */
+    .leaflet-control-attribution { display: none !important; }
+ 
+    /* ─── RESPONSIVE ───────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      :root { --panel-w: 100vw; }
+ 
+      #panel {
+        top: auto;
+        bottom: -100vh;
+        right: 0;
+        height: 65vh;
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--glass-bd);
+        border-radius: 20px 20px 0 0;
+        transition: bottom .4s cubic-bezier(.22,1,.36,1);
+      }
+ 
+      #panel.open { bottom: 0; right: 0; }
+ 
+      #header .brand-text span:first-child { font-size: 1.1rem; }
+ 
+      #panel-stats { grid-template-columns: 1fr 1fr; }
+    }
+ 
+    /* ─── SPINNER ──────────────────────────────────────────────────── */
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: #050d1f;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      transition: opacity .5s;
+    }
+ 
+    #loader.done { opacity: 0; pointer-events: none; }
+ 
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(255,255,255,.1);
+      border-top-color: var(--green-lit);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+ 
+    @keyframes spin { to { transform: rotate(360deg); } }
+ 
+    #loader span {
+      font-family: var(--font-head);
+      font-size: .75rem;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.4);
+    }
+  </style>
 </head>
 <body>
-
-    <!-- HEADER -->
-    <header>
-        <div class="header-content">
-            <div class="logo-container">
-                <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/WhatsApp%20Image%202026-04-08%20at%2012.16.40%20PM.jpeg?raw=true" 
-                     alt="Taxi Oliveros" class="logo">
-                <div class="brand-info">
-                    <h1>Taxi Oliveros</h1>
-                    <p class="slogan">CONFIABLE • SEGURO • RÁPIDO • ECONÓMICO</p>
-                </div>
-            </div>
-            
-            <div class="horario">
-                <span>🕒</span> 24/7
-            </div>
-        </div>
-    </header>
-
-    <!-- HERO -->
-    <section class="hero" id="inicio">
-        <div class="hero-content">
-            <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/WhatsApp%20Image%202026-04-08%20at%2012.16.40%20PM.jpeg?raw=true" 
-                 alt="Taxi Oliveros" class="logo-hero">
-            
-            <h1>Los Guayos Digital</h1>
-            <p class="slogan-hero">Tu plataforma hiperlocal de movilidad y delivery</p>
-            
-            <div class="hero-cta">
-                <button onclick="contactAgent()" class="btn btn-primary">
-                    👋 Hola, contacta con el agente
-                </button>
-                
-                <button onclick="shareLocation()" class="btn btn-wa">
-                    📍 Mi ubicación actual
-                </button>
-            </div>
-            
-            <p style="margin-top: 24px; font-size: 0.95rem; color: #666; font-weight: 500;">
-                Menos de 3 clics para conectar • 24/7
-            </p>
-        </div>
-    </section>
-
-    <!-- SERVICIOS -->
-    <section id="servicios">
-        <h2 class="section-title">Nuestros Servicios</h2>
-        
-        <div class="services-grid">
-            <!-- Delivery -->
-            <div class="service-card">
-                <div class="icon">🚀</div>
-                <div class="content">
-                    <h3>Delivery</h3>
-                    <p>Comida, supermercado, farmacia o lo que necesites en minutos. Rápido, seguro y al mejor precio de Los Guayos.</p>
-                    <button onclick="openServiceWA('delivery')" class="btn btn-wa" style="width: 100%;">
-                        <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/iconodewhatsapp.png?raw=true" 
-                             alt="WA" style="height: 26px;"> Pedir Delivery
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Encomienda -->
-            <div class="service-card">
-                <div class="icon">📦</div>
-                <div class="content">
-                    <h3>Encomienda</h3>
-                    <p>Envía documentos, paquetes o regalos de forma segura y económica. Recogida y entrega exprés en la ciudad. Confiable.</p>
-                    <button onclick="openServiceWA('encomienda')" class="btn btn-wa" style="width: 100%;">
-                        <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/iconodewhatsapp.png?raw=true" 
-                             alt="WA" style="height: 26px;"> Enviar Encomienda
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Moto Taxi -->
-            <div class="service-card">
-                <div class="icon">🏍️</div>
-                <div class="content">
-                    <h3>Moto Taxi</h3>
-                    <p>Traslados rápidos y seguros en moto por Los Guayos y Carabobo. Evita el tráfico y llega a tiempo. Económico y profesional.</p>
-                    <button onclick="openServiceWA('mototaxi')" class="btn btn-wa" style="width: 100%;">
-                        <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/iconodewhatsapp.png?raw=true" 
-                             alt="WA" style="height: 26px;"> Pedir Moto Taxi
-                    </button>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CATEGORÍAS -->
-    <section id="categorias" style="background: white; padding-top: 0;">
-        <h2 class="section-title">Categorías de Servicios</h2>
-        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-            <div onclick="navigateToCategory('taxi')" 
-                 style="background: var(--primary-brown); color: white; padding: 14px 32px; border-radius: 9999px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(139,90,43,0.2);">
-                🏍️ Taxi
-            </div>
-            <div onclick="navigateToCategory('delivery-personal')" 
-                 style="background: #5C4033; color: white; padding: 14px 32px; border-radius: 9999px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(92,64,51,0.2);">
-                📦 Delivery Personal
-            </div>
-            <div onclick="navigateToCategory('delivery-corporativo')" 
-                 style="background: #8B5A2B; color: white; padding: 14px 32px; border-radius: 9999px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(139,90,43,0.2);">
-                🏢 Delivery Corporativo
-            </div>
-        </div>
-    </section>
-
-    <!-- ALIADOS -->
-    <section id="aliados" style="background: var(--metallic);">
-        <h2 class="section-title">Aliados Comerciales</h2>
-        
-        <div class="allies-grid">
-            <!-- Genio Vision -->
-            <div class="ally-card">
-                <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/logo%20Genio%20Vision.jpg?raw=true" alt="Genio Vision">
-                <h4>Genio Vision</h4>
-                <p>Soluciones tecnológicas y de visión estratégica para tu negocio y hogar.</p>
-                <button onclick="openAllyWA('genio', '0424-4517644')" class="btn btn-wa" style="width: 100%;">
-                    Contactar por WhatsApp
-                </button>
-            </div>
-            
-            <!-- RCV Serca -->
-            <div class="ally-card">
-                <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/serca.jpg?raw=true" alt="RCV Serca">
-                <h4>RCV Serca</h4>
-                <p>Seguros de responsabilidad civil vehicular (RCV). La mejor protección para tu moto o auto.</p>
-                <button onclick="openAllyWA('rcv', '0412-5396083')" class="btn btn-wa" style="width: 100%;">
-                    Cotizar seguro
-                </button>
-            </div>
-            
-            <!-- Odalys -->
-            <div class="ally-card">
-                <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/5fa921f8-dccb-48ce-a6fe-f42871293fc8.jpg?raw=true" alt="Odalys">
-                <h4>Odalys</h4>
-                <p>Tienda online de ropa y accesorios de moda con envío rápido.</p>
-                <button onclick="openAllyWA('odalys', '0412-1381770')" class="btn btn-wa" style="width: 100%;">
-                    Ver catálogo
-                </button>
-            </div>
-            
-            <!-- Pa chuparse los dedos -->
-            <div class="ally-card">
-                <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/a709d8f6-09d1-4c02-9153-78de0ad55a18.jpg?raw=true" alt="Pa chuparse los dedos">
-                <h4>Pa' Chuparse los Dedos</h4>
-                <p>Comidas rápidas: patacones, empanadas y más. Sabor venezolano auténtico.</p>
-                <button onclick="openAllyWA('pachuparse', '0422-0121838')" class="btn btn-wa" style="width: 100%;">
-                    Pedir ahora
-                </button>
-            </div>
-            
-            <!-- Dulzura Helada -->
-            <div class="ally-card">
-                <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/f2cd3cc6-1e52-431f-a4e8-e00f1385a438.jpg?raw=true" alt="Dulzura Helada">
-                <h4>Dulzura Helada</h4>
-                <p>Helados y dulces artesanales de la mejor calidad y servicio.</p>
-                <button onclick="openAllyWA('dulzura', '0412-1381770')" class="btn btn-wa" style="width: 100%;">
-                    Comprar dulces
-                </button>
-            </div>
-        </div>
-    </section>
-
-    <!-- TRABAJA CON NOSOTROS -->
-    <section id="trabaja" class="talent-section">
-        <h2 class="section-title">🚀 Trabaja con Nosotros</h2>
-        <p style="text-align: center; max-width: 620px; margin: 0 auto 32px; font-size: 1.15rem; color: var(--dark-brown);">
-            Sé conductor de <strong>Taxi Oliveros</strong> y gana con flexibilidad en Carabobo
-        </p>
-        
-        <div class="benefits-grid">
-            <div class="benefit-card">
-                <h4>Flexibilidad total</h4>
-                <p>Conduce cuando quieras y a donde quieras. ¡Tú decides tu ritmo!</p>
-            </div>
-            <div class="benefit-card">
-                <h4>Ganancias atractivas</h4>
-                <p>Gana más en horas pico y recibe propinas por tu excelente servicio.</p>
-            </div>
-            <div class="benefit-card">
-                <h4>Pagos semanales</h4>
-                <p>Recibe tus ganancias tres veces por semana en tu cuenta bancaria.</p>
-            </div>
-            <div class="benefit-card">
-                <h4>Seguridad garantizada</h4>
-                <p>Conoce el destino antes de aceptar y recibe orientación especializada.</p>
-            </div>
-        </div>
-        
-        <div class="requirements">
-            <h3 style="margin-bottom: 18px; text-align: center; color: var(--primary-brown);">Requisitos</h3>
-            <ul>
-                <li>✅ Vehículo en buen estado</li>
-                <li>✅ Cédula de identidad</li>
-                <li>✅ Licencia de conducir</li>
-                <li>✅ RCV</li>
-                <li>✅ Carnet de circulación</li>
-                <li>✅ Teléfono inteligente</li>
-                <li>✅ Certificado médico</li>
-                <li>✅ Pasión por Carabobo y vocación de servicio</li>
-            </ul>
-        </div>
-        
-        <h3 style="text-align: center; margin-bottom: 20px; color: var(--dark-brown);">Solicita unirte en 30 segundos</h3>
-        
-        <form id="talent-form" onsubmit="handleTalentForm(event)">
-            <div class="form-group">
-                <label>Nombre completo</label>
-                <input type="text" id="nombre" required placeholder="Tu nombre">
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                <div class="form-group">
-                    <label>Teléfono</label>
-                    <input type="tel" id="telefono" required placeholder="0414-XXXXXXX">
-                </div>
-                <div class="form-group">
-                    <label>Tipo de vehículo</label>
-                    <select id="vehiculo" required>
-                        <option value="">Selecciona...</option>
-                        <option value="Moto">Moto</option>
-                        <option value="Auto">Auto</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Experiencia como conductor</label>
-                <textarea id="experiencia" rows="3" placeholder="Ej: 2 años en delivery..."></textarea>
-            </div>
-            
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
-                🚀 Enviar solicitud por WhatsApp
-            </button>
-        </form>
-        
-        <div style="margin-top: 40px; background: var(--metallic); padding: 24px; border-radius: 20px;">
-            <h4 style="margin-bottom: 12px; color: var(--primary-brown);">Servicios Delivery que podrás ofrecer</h4>
-            <ul style="line-height: 1.7; font-size: 1.02rem;">
-                <li>🔥 Los mejores restaurantes de tu ciudad</li>
-                <li>⚡ Entrega rápida ¡como un rayo!</li>
-                <li>🛒 Súper, farmacias, floristerías y mucho más</li>
-            </ul>
-        </div>
-    </section>
-
-    <!-- AGRADECIMIENTOS -->
-    <section style="text-align: center; padding: 36px 20px; background: white;">
-        <p style="font-size: 1rem; color: #777; margin-bottom: 12px;">Gracias a</p>
-        <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/logo%20nexus.jpg?raw=true" 
-             alt="Nexus Marketing" style="height: 56px; width: auto;">
-        <p style="font-size: 0.95rem; color: #666; margin-top: 8px;">Nexus Marketing</p>
-    </section>
-
-    <!-- FAB WHATSAPP -->
-    <div class="fab-wa" onclick="contactAgent()">
-        <img src="https://github.com/jhonmalorne/DevieryTaxiOlivery/blob/main/iconodewhatsapp.png?raw=true" 
-             alt="WhatsApp" style="height: 38px; width: 38px;">
+ 
+<!-- ── LOADER ─────────────────────────────────────────────────── -->
+<div id="loader">
+  <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true"
+       style="height:70px;filter:drop-shadow(0 0 16px rgba(39,192,106,.5))" alt="logo" />
+  <div class="spinner"></div>
+  <span>Cargando mapa electoral…</span>
+</div>
+ 
+<!-- ── HEADER ─────────────────────────────────────────────────── -->
+<header id="header">
+  <div class="brand">
+    <img class="logo"
+         src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true"
+         alt="Concertación Carabobo" />
+    <div class="brand-text">
+      <span>Concertación Carabobo</span>
+      <span>Mapa Electoral Estratégico</span>
     </div>
-
-    <!-- MENÚ INFERIOR -->
-    <nav class="bottom-nav">
-        <div class="nav-item active" onclick="navigateTo('inicio')"><span>🏠</span>Inicio</div>
-        <div class="nav-item" onclick="navigateTo('servicios')"><span>🏍️</span>Taxi</div>
-        <div class="nav-item" onclick="navigateToCategory('delivery-personal')"><span>📦</span>Delivery</div>
-        <div class="nav-item" onclick="navigateToCategory('delivery-corporativo')"><span>🏢</span>Corporativo</div>
-        <div class="nav-item" onclick="navigateTo('trabaja')"><span>🚀</span>Trabaja</div>
-    </nav>
-
-    <script>
-        /**
-         * Los Guayos Digital - Taxi Oliveros
-         * Versión actualizada: Diseño minimalista profesional con colores marrón + blanco y acabado metálico
-         * Basado exactamente en el logo de la empresa. Flujo de conversión < 3 clics.
-         * Mobile-First • Alto rendimiento • Código limpio y comentado
-         */
-
-        function openWA(phone, message) {
-            const cleanPhone = phone.replace(/\D/g, '');
-            const fullPhone = cleanPhone.startsWith('58') ? cleanPhone : '58' + cleanPhone;
-            const encodedMsg = encodeURIComponent(message);
-            window.open(`https://wa.me/${fullPhone}?text=${encodedMsg}`, '_blank');
-        }
-
-        function contactAgent() {
-            const msg = "👋 Hola! Soy usuario de Los Guayos Digital. Quiero hablar con un agente de Taxi Oliveros.";
-            openWA('04149426895', msg);
-        }
-
-        function shareLocation() {
-            if (!navigator.geolocation) {
-                alert("Geolocalización no disponible en este navegador.");
-                return;
-            }
-            
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    const lat = pos.coords.latitude.toFixed(6);
-                    const lng = pos.coords.longitude.toFixed(6);
-                    const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
-                    const msg = `📍 Mi ubicación actual:\n${mapsLink}\n\nHola Taxi Oliveros, estoy en Los Guayos y necesito un servicio urgente. ¡Gracias!`;
-                    openWA('04149426895', msg);
-                },
-                () => {
-                    alert("No se pudo obtener la ubicación. Intenta nuevamente o escribe directamente.");
-                    contactAgent();
-                },
-                { enableHighAccuracy: true }
-            );
-        }
-
-        function openServiceWA(service) {
-            let msg = "Hola Taxi Oliveros, ";
-            if (service === 'delivery') msg += "quiero hacer un Delivery ahora.";
-            else if (service === 'encomienda') msg += "necesito enviar una Encomienda.";
-            else if (service === 'mototaxi') msg += "quiero un Moto Taxi urgente.";
-            openWA('04149426895', msg);
-        }
-
-        function openAllyWA(ally, phone) {
-            let msg = "Hola desde Los Guayos Digital - Taxi Oliveros.\n\n";
-            if (ally === 'genio') msg += "Estoy interesado en Genio Vision.";
-            else if (ally === 'rcv') msg += "Quiero cotizar un seguro RCV.";
-            else if (ally === 'odalys') msg += "Quiero ver el catálogo de Odalys.";
-            else if (ally === 'pachuparse') msg += "Quiero pedir comida en Pa' Chuparse los Dedos.";
-            else if (ally === 'dulzura') msg += "Quiero comprar productos de Dulzura Helada.";
-            openWA(phone, msg);
-        }
-
-        function handleTalentForm(e) {
-            e.preventDefault();
-            const nombre = document.getElementById('nombre').value;
-            const telefono = document.getElementById('telefono').value;
-            const vehiculo = document.getElementById('vehiculo').value;
-            const experiencia = document.getElementById('experiencia').value || 'Sin experiencia previa';
-            
-            const msg = `🚀 Solicitud para ser conductor\nNombre: ${nombre}\nTeléfono: ${telefono}\nVehículo: ${vehiculo}\nExperiencia: ${experiencia}\n\n¡Listo para empezar!`;
-            openWA('04149426895', msg);
-            
-            const btn = e.target.querySelector('button');
-            const original = btn.textContent;
-            btn.textContent = '✅ Enviado correctamente';
-            btn.style.background = '#25D366';
-            
-            setTimeout(() => {
-                btn.textContent = original;
-                btn.style.background = '';
-                e.target.reset();
-            }, 2500);
-        }
-
-        function navigateTo(section) {
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            if (section === 'inicio') document.getElementById('inicio').scrollIntoView({ behavior: 'smooth' });
-            else if (section === 'servicios') document.getElementById('servicios').scrollIntoView({ behavior: 'smooth' });
-            else if (section === 'trabaja') document.getElementById('trabaja').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function navigateToCategory(cat) {
-            document.getElementById('servicios').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        window.onload = () => {
-            console.log('%c✅ Taxi Oliveros - Los Guayos Digital | Diseño minimalista marrón + metálico cargado', 'background:#8B5A2B;color:#fff;padding:4px 8px;border-radius:4px');
-        };
-    </script>
+  </div>
+  <div class="header-stat">
+    <span class="val">1.663.942</span>
+    <span class="lbl">Electores en Carabobo</span>
+  </div>
+</header>
+ 
+<!-- ── APP ────────────────────────────────────────────────────── -->
+<div id="app">
+  <div id="map"></div>
+</div>
+ 
+<!-- ── SIDE PANEL ─────────────────────────────────────────────── -->
+<div id="panel">
+  <button id="panel-close" title="Cerrar">✕</button>
+ 
+  <div id="panel-hero">
+    <img id="panel-flag" src="" alt="Bandera del municipio" />
+    <div id="panel-name">—</div>
+    <div id="panel-capital">Capital: —</div>
+  </div>
+ 
+  <div id="panel-stats">
+    <div class="stat-card">
+      <span class="s-icon">🗳️</span>
+      <span class="s-val" id="stat-mesas">—</span>
+      <span class="s-lbl">Mesas</span>
+    </div>
+    <div class="stat-card">
+      <span class="s-icon">👥</span>
+      <span class="s-val" id="stat-electores">—</span>
+      <span class="s-lbl">Electores</span>
+    </div>
+    <div class="stat-card">
+      <span class="s-icon">📊</span>
+      <span class="s-val" id="stat-pct">—</span>
+      <span class="s-lbl">% del Estado</span>
+    </div>
+    <div class="stat-card">
+      <span class="s-icon">🏛️</span>
+      <span class="s-val" id="stat-ratio">—</span>
+      <span class="s-lbl">Electores/Mesa</span>
+    </div>
+  </div>
+ 
+  <div id="panel-footer">
+    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true"
+         alt="Logo" />
+    <span>Concertación Carabobo · 2025</span>
+  </div>
+</div>
+ 
+<!-- ── HINT ───────────────────────────────────────────────────── -->
+<div id="hint">Haz clic en un municipio para ver su información</div>
+ 
+<!-- ── LEAFLET JS ──────────────────────────────────────────────── -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+ 
+<script>
+/* ════════════════════════════════════════════════════════════════
+   DATOS DE MUNICIPIOS
+═══════════════════════════════════════════════════════════════ */
+const MUNICIPIOS = {
+  "Valencia":      { capital: "Valencia",     mesas: 742,  electores: 613670,  flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Valencia.jpg?raw=true" },
+  "Diego Ibarra":  { capital: "Mariara",      mesas: 90,   electores: 71951,   flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Diego%20Ibarra.jpg?raw=true" },
+  "Carlos Arvelo": { capital: "Güigüe",       mesas: 147,  electores: 107312,  flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/carlos%20arvelo.jpg?raw=true" },
+  "Guacara":       { capital: "Guacara",      mesas: 153,  electores: 131072,  flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Guacara.jpg?raw=true" },
+  "Juan José Mora":{ capital: "Morón",        mesas: 78,   electores: 53965,   flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Juan%20Jose%20Mora.jpg?raw=true" },
+  "Libertador":    { capital: "Tocuyito",     mesas: 159,  electores: 124901,  flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Libertador.jpg?raw=true" },
+  "Los Guayos":    { capital: "Los Guayos",   mesas: 131,  electores: 106124,  flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Los%20Guayos.jpg?raw=true" },
+  "Miranda":       { capital: "Miranda",      mesas: 31,   electores: 22578,   flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Miranda.jpg?raw=true" },
+  "Montalbán":     { capital: "Montalbán",    mesas: 24,   electores: 19238,   flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Montalban.jpg?raw=true" },
+  "Naguanagua":    { capital: "Naguanagua",   mesas: 127,  electores: 106869,  flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Naguanagua.jpg?raw=true" },
+  "Puerto Cabello":{ capital: "Puerto Cabello",mesas: 188, electores: 150415,  flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Puerto%20Cabello.jpg?raw=true" },
+  "San Diego":     { capital: "San Diego",    mesas: 81,   electores: 72497,   flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20diego.jpg?raw=true" },
+  "San Joaquín":   { capital: "San Joaquín",  mesas: 56,   electores: 45866,   flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20Joaquin.jpg?raw=true" },
+  "Bejuma":        { capital: "Bejuma",       mesas: 52,   electores: 37484,   flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Bejuma.jpg?raw=true" },
+};
+ 
+/* Totales del estado (para calcular % */
+const TOTAL_ELECTORES = 1663942;
+const TOTAL_MESAS     = 2059;
+ 
+/* ════════════════════════════════════════════════════════════════
+   COLORES
+═══════════════════════════════════════════════════════════════ */
+const COLOR_NORMAL   = '#1a3a8f';
+const COLOR_HOVER    = '#2255c8';
+const COLOR_SELECTED = '#1b8a4c';
+const COLOR_DIM      = '#07163a';
+const OPACITY_NORMAL = 0.55;
+const OPACITY_DIM    = 0.25;
+ 
+/* ════════════════════════════════════════════════════════════════
+   INICIALIZAR MAPA
+═══════════════════════════════════════════════════════════════ */
+const map = L.map('map', {
+  center: [10.18, -68.0],
+  zoom: 9,
+  zoomControl: true,
+  attributionControl: false,
+});
+ 
+/* Tile oscuro */
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+ 
+/* Reposicionar zoom */
+map.zoomControl.setPosition('topright');
+ 
+/* ════════════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════════ */
+function fmt(n) {
+  return n.toLocaleString('es-VE');
+}
+ 
+/** Normaliza nombre para buscar en el diccionario */
+function matchMunicipio(rawName) {
+  if (!rawName) return null;
+  const name = rawName.trim();
+  // Búsqueda exacta primero
+  if (MUNICIPIOS[name]) return name;
+  // Búsqueda parcial
+  const lower = name.toLowerCase();
+  for (const key of Object.keys(MUNICIPIOS)) {
+    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) return key;
+  }
+  return null;
+}
+ 
+/* ════════════════════════════════════════════════════════════════
+   ESTADO DE INTERACCIÓN
+═══════════════════════════════════════════════════════════════ */
+let selectedLayer = null;
+let geojsonLayer  = null;
+ 
+/* ════════════════════════════════════════════════════════════════
+   ESTILOS DE CAPAS
+═══════════════════════════════════════════════════════════════ */
+function styleNormal(feature) {
+  return {
+    color: '#27c06a',
+    weight: 1.5,
+    fillColor: COLOR_NORMAL,
+    fillOpacity: OPACITY_NORMAL,
+    opacity: 1,
+  };
+}
+ 
+function styleDim() {
+  return {
+    color: '#1a3a8f',
+    weight: 1,
+    fillColor: COLOR_DIM,
+    fillOpacity: OPACITY_DIM,
+    opacity: .4,
+  };
+}
+ 
+function styleSelected() {
+  return {
+    color: '#27c06a',
+    weight: 2.5,
+    fillColor: COLOR_SELECTED,
+    fillOpacity: 0.7,
+    opacity: 1,
+  };
+}
+ 
+/* ════════════════════════════════════════════════════════════════
+   PANEL LATERAL
+═══════════════════════════════════════════════════════════════ */
+const panel     = document.getElementById('panel');
+const hint      = document.getElementById('hint');
+let hintHidden  = false;
+ 
+function openPanel(key) {
+  const d = MUNICIPIOS[key];
+  if (!d) return;
+ 
+  document.getElementById('panel-flag').src     = d.flag;
+  document.getElementById('panel-name').textContent    = key;
+  document.getElementById('panel-capital').textContent = 'Capital: ' + d.capital;
+  document.getElementById('stat-mesas').textContent    = fmt(d.mesas);
+  document.getElementById('stat-electores').textContent = fmt(d.electores);
+  document.getElementById('stat-pct').textContent = ((d.electores / TOTAL_ELECTORES) * 100).toFixed(1) + '%';
+  document.getElementById('stat-ratio').textContent = Math.round(d.electores / d.mesas).toLocaleString('es-VE');
+ 
+  panel.classList.add('open');
+ 
+  if (!hintHidden) {
+    hint.classList.add('hidden');
+    hintHidden = true;
+  }
+}
+ 
+function closePanel() {
+  panel.classList.remove('open');
+  // Restablecer todos los polígonos
+  if (geojsonLayer) {
+    geojsonLayer.eachLayer(l => l.setStyle(styleNormal(l.feature)));
+  }
+  selectedLayer = null;
+}
+ 
+document.getElementById('panel-close').addEventListener('click', closePanel);
+ 
+/* ════════════════════════════════════════════════════════════════
+   INTERACCIONES DE CAPA
+═══════════════════════════════════════════════════════════════ */
+function onEachFeature(feature, layer) {
+  /* Tooltip */
+  const rawName = feature.properties.NAME_2 || feature.properties.name || '';
+  const key = matchMunicipio(rawName) || rawName;
+ 
+  layer.bindTooltip(key, {
+    className: 'map-tooltip',
+    sticky: true,
+    offset: [12, 0],
+  });
+ 
+  /* Hover */
+  layer.on('mouseover', function () {
+    if (this === selectedLayer) return;
+    this.setStyle({
+      fillColor: COLOR_HOVER,
+      fillOpacity: 0.75,
+      weight: 2,
+      color: '#5b9fff',
+    });
+    this.bringToFront();
+  });
+ 
+  layer.on('mouseout', function () {
+    if (this === selectedLayer) return;
+    if (selectedLayer) {
+      this.setStyle(styleDim());
+    } else {
+      this.setStyle(styleNormal(this.feature));
+    }
+  });
+ 
+  /* Click */
+  layer.on('click', function () {
+    // Restablecer anterior seleccionado
+    if (selectedLayer && selectedLayer !== this) {
+      selectedLayer.setStyle(styleDim());
+    }
+ 
+    selectedLayer = this;
+ 
+    // Dim todos
+    geojsonLayer.eachLayer(l => {
+      if (l !== selectedLayer) l.setStyle(styleDim());
+    });
+ 
+    // Resaltar seleccionado
+    selectedLayer.setStyle(styleSelected());
+    selectedLayer.bringToFront();
+ 
+    // Zoom
+    map.fitBounds(selectedLayer.getBounds(), { padding: [40, 40], maxZoom: 12 });
+ 
+    // Panel
+    const matchedKey = matchMunicipio(rawName);
+    if (matchedKey) openPanel(matchedKey);
+  });
+}
+ 
+/* ════════════════════════════════════════════════════════════════
+   CARGA DEL GEOJSON
+   El archivo ven_admin2.json debe estar en el mismo directorio.
+   Si no existe, generamos polígonos aproximados de demostración.
+═══════════════════════════════════════════════════════════════ */
+fetch('ven_admin2.json')
+  .then(r => {
+    if (!r.ok) throw new Error('GeoJSON no disponible');
+    return r.json();
+  })
+  .then(data => {
+    // Filtrar solo Carabobo (ADM1 name)
+    const caraboboFeatures = data.features.filter(f => {
+      const adm1 = (f.properties.NAME_1 || f.properties.adm1 || '').toLowerCase();
+      return adm1.includes('carabobo');
+    });
+ 
+    const filtered = { type: 'FeatureCollection', features: caraboboFeatures };
+ 
+    geojsonLayer = L.geoJSON(filtered, {
+      style: styleNormal,
+      onEachFeature,
+    }).addTo(map);
+ 
+    map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20] });
+    hideLoader();
+  })
+  .catch(() => {
+    // Fallback: polígonos aproximados embebidos para demostración
+    loadFallbackPolygons();
+  });
+ 
+/* ════════════════════════════════════════════════════════════════
+   FALLBACK CON COORDENADAS APROXIMADAS
+   (se usa si ven_admin2.json no está disponible)
+═══════════════════════════════════════════════════════════════ */
+function loadFallbackPolygons() {
+  // Polígonos simplificados aproximados de los 14 municipios de Carabobo
+  const fallback = {
+    type: "FeatureCollection",
+    features: [
+      { type:"Feature", properties:{ NAME_2:"Valencia" },       geometry:{ type:"Polygon", coordinates:[[[-67.95,10.08],[-67.85,10.08],[-67.85,10.20],[-67.95,10.20],[-67.95,10.08]]] } },
+      { type:"Feature", properties:{ NAME_2:"Naguanagua" },     geometry:{ type:"Polygon", coordinates:[[[-68.00,10.20],[-67.92,10.20],[-67.92,10.28],[-68.00,10.28],[-68.00,10.20]]] } },
+      { type:"Feature", properties:{ NAME_2:"San Diego" },      geometry:{ type:"Polygon", coordinates:[[[-67.85,10.12],[-67.75,10.12],[-67.75,10.22],[-67.85,10.22],[-67.85,10.12]]] } },
+      { type:"Feature", properties:{ NAME_2:"Los Guayos" },     geometry:{ type:"Polygon", coordinates:[[[-67.85,10.05],[-67.77,10.05],[-67.77,10.12],[-67.85,10.12],[-67.85,10.05]]] } },
+      { type:"Feature", properties:{ NAME_2:"Guacara" },        geometry:{ type:"Polygon", coordinates:[[[-67.97,10.22],[-67.87,10.22],[-67.87,10.30],[-67.97,10.30],[-67.97,10.22]]] } },
+      { type:"Feature", properties:{ NAME_2:"San Joaquín" },    geometry:{ type:"Polygon", coordinates:[[[-67.78,10.26],[-67.67,10.26],[-67.67,10.34],[-67.78,10.34],[-67.78,10.26]]] } },
+      { type:"Feature", properties:{ NAME_2:"Libertador" },     geometry:{ type:"Polygon", coordinates:[[[-68.10,10.02],[-67.98,10.02],[-67.98,10.12],[-68.10,10.12],[-68.10,10.02]]] } },
+      { type:"Feature", properties:{ NAME_2:"Carlos Arvelo" },  geometry:{ type:"Polygon", coordinates:[[[-67.74,9.98],[-67.60,9.98],[-67.60,10.10],[-67.74,10.10],[-67.74,9.98]]] } },
+      { type:"Feature", properties:{ NAME_2:"Diego Ibarra" },   geometry:{ type:"Polygon", coordinates:[[[-67.70,10.18],[-67.57,10.18],[-67.57,10.30],[-67.70,10.30],[-67.70,10.18]]] } },
+      { type:"Feature", properties:{ NAME_2:"Puerto Cabello" }, geometry:{ type:"Polygon", coordinates:[[[-68.02,10.44],[-67.88,10.44],[-67.88,10.56],[-68.02,10.56],[-68.02,10.44]]] } },
+      { type:"Feature", properties:{ NAME_2:"Juan José Mora" }, geometry:{ type:"Polygon", coordinates:[[[-68.22,10.40],[-68.10,10.40],[-68.10,10.52],[-68.22,10.52],[-68.22,10.40]]] } },
+      { type:"Feature", properties:{ NAME_2:"Montalbán" },      geometry:{ type:"Polygon", coordinates:[[[-68.38,10.18],[-68.25,10.18],[-68.25,10.30],[-68.38,10.30],[-68.38,10.18]]] } },
+      { type:"Feature", properties:{ NAME_2:"Bejuma" },         geometry:{ type:"Polygon", coordinates:[[[-68.30,10.04],[-68.17,10.04],[-68.17,10.18],[-68.30,10.18],[-68.30,10.04]]] } },
+      { type:"Feature", properties:{ NAME_2:"Miranda" },        geometry:{ type:"Polygon", coordinates:[[[-68.16,10.18],[-68.04,10.18],[-68.04,10.30],[-68.16,10.30],[-68.16,10.18]]] } },
+    ]
+  };
+ 
+  geojsonLayer = L.geoJSON(fallback, {
+    style: styleNormal,
+    onEachFeature,
+  }).addTo(map);
+ 
+  map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20] });
+ 
+  // Mostrar aviso
+  const warn = L.control({ position: 'bottomleft' });
+  warn.onAdd = () => {
+    const d = L.DomUtil.create('div');
+    d.innerHTML = `<div style="background:rgba(5,20,50,.9);border:1px solid rgba(255,150,0,.4);border-radius:8px;padding:8px 14px;font-size:.7rem;letter-spacing:.1em;color:rgba(255,200,100,.85);max-width:260px;">
+      ⚠ Geometrías aproximadas. Coloca <strong>ven_admin2.json</strong> en la raíz del repositorio para datos precisos.
+    </div>`;
+    return d;
+  };
+  warn.addTo(map);
+ 
+  hideLoader();
+}
+ 
+/* ════════════════════════════════════════════════════════════════
+   LOADER
+═══════════════════════════════════════════════════════════════ */
+function hideLoader() {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('done');
+    setTimeout(() => document.getElementById('loader').remove(), 600);
+  }, 400);
+}
+ 
+/* ════════════════════════════════════════════════════════════════
+   CERRAR PANEL AL CLICK EN MAPA (fuera de polígono)
+═══════════════════════════════════════════════════════════════ */
+map.on('click', function (e) {
+  // Si el click fue fuera de cualquier polígono
+  if (!e.originalEvent._featureClicked) {
+    closePanel();
+  }
+});
+ 
+// Marcar que el click fue en un feature (para distinguirlo del click en el mapa)
+document.addEventListener('DOMContentLoaded', () => {}, false);
+</script>
 </body>
 </html>
