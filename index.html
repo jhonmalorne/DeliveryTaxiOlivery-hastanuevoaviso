@@ -1,530 +1,473 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapa Electoral · Concertación Carabobo</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;500;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --blue:      #0a2463;
-      --blue-mid:  #1a3a8f;
-      --blue-lite: #2255c8;
-      --green:     #1b8a4c;
-      --green-lit: #27c06a;
-      --white:     #f4f7ff;
-      --glass:     rgba(255,255,255,0.07);
-      --glass-bd:  rgba(255,255,255,0.15);
-      --panel-w:   340px;
-      --header-h:  64px;
-      --radius:    14px;
-      --font-head: 'Barlow Condensed', sans-serif;
-      --font-body: 'DM Sans', sans-serif;
-    }
-    html, body { height: 100%; background: #050d1f; color: var(--white); font-family: var(--font-body); overflow: hidden; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mapa Electoral · Concertación Carabobo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;500;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
-    /* HEADER */
-    #header {
-      position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); z-index: 1000;
-      background: linear-gradient(90deg, var(--blue) 0%, #0d1f55 60%, #0a2a1a 100%);
-      border-bottom: 1px solid var(--glass-bd);
-      display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
-      backdrop-filter: blur(12px); box-shadow: 0 2px 24px rgba(0,0,0,.6);
-    }
-    #header .brand { display: flex; align-items: center; gap: 12px; }
-    #header img.logo { height: 46px; filter: drop-shadow(0 0 8px rgba(39,192,106,.4)); }
-    #header .brand-text { display: flex; flex-direction: column; line-height: 1; }
-    #header .brand-text span:first-child { font-family: var(--font-head); font-weight: 900; font-size: 1.35rem; letter-spacing: .08em; text-transform: uppercase; color: var(--white); }
-    #header .brand-text span:last-child { font-family: var(--font-head); font-weight: 300; font-size: .8rem; letter-spacing: .22em; text-transform: uppercase; color: var(--green-lit); margin-top: 2px; }
-    #header .header-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-    #header .header-stat .val { font-family: var(--font-head); font-weight: 700; font-size: 1.4rem; color: var(--green-lit); letter-spacing: .05em; }
-    #header .header-stat .lbl { font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; opacity: .6; }
+<style>
+/* ══ RESET & TOKENS ══════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:      #0a2463;
+  --blue-mid:  #1a3a8f;
+  --blue-lit:  #2255c8;
+  --green:     #1b8a4c;
+  --green-lit: #27c06a;
+  --white:     #f4f7ff;
+  --glass:     rgba(255,255,255,0.07);
+  --glass-bd:  rgba(255,255,255,0.15);
+  --hdr:       64px;
+  --panel-w:   340px;
+  --r:         14px;
+  --fh:        'Barlow Condensed',sans-serif;
+  --fb:        'DM Sans',sans-serif;
+}
+html,body{height:100%;background:#050d1f;color:var(--white);font-family:var(--fb);overflow:hidden}
 
-    /* LAYOUT */
-    #app { display: flex; height: 100%; padding-top: var(--header-h); }
-    #map { flex: 1; height: 100%; z-index: 1; background: #050d1f; }
+/* ══ LOADER ══════════════════════════════════════════════════════ */
+#loader{
+  position:fixed;inset:0;background:#050d1f;z-index:3000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .6s ease
+}
+#loader.done{opacity:0;pointer-events:none}
+#loader img{height:72px;filter:drop-shadow(0 0 18px rgba(39,192,106,.55))}
+.spinner{width:46px;height:46px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--green-lit);border-radius:50%;animation:spin .85s linear infinite}
+#loader p{font-family:var(--fh);font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.38)}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    /* LAYER SWITCHER */
-    #layer-switcher {
-      position: fixed; bottom: 24px; right: 14px; z-index: 900;
-      display: flex; flex-direction: column; gap: 6px;
-    }
-    .layer-btn {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(5,20,50,0.88); border: 1px solid var(--glass-bd);
-      border-radius: 8px; padding: 7px 12px; cursor: pointer;
-      font-family: var(--font-head); font-size: .78rem; letter-spacing: .12em;
-      text-transform: uppercase; color: rgba(244,247,255,.6);
-      transition: background .2s, border-color .2s, color .2s;
-      backdrop-filter: blur(10px);
-      white-space: nowrap;
-    }
-    .layer-btn:hover { background: rgba(20,50,120,.7); color: var(--white); }
-    .layer-btn.active { border-color: var(--green-lit); color: var(--green-lit); background: rgba(27,138,76,.15); }
-    .layer-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+/* ══ HEADER ══════════════════════════════════════════════════════ */
+#hdr{
+  position:fixed;top:0;left:0;right:0;height:var(--hdr);z-index:1000;
+  background:linear-gradient(90deg,#0a2463 0%,#0d1f55 55%,#0a2a1a 100%);
+  border-bottom:1px solid var(--glass-bd);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+  box-shadow:0 2px 24px rgba(0,0,0,.65)
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{height:44px;filter:drop-shadow(0 0 8px rgba(39,192,106,.4))}
+.brand-txt{display:flex;flex-direction:column;line-height:1.1}
+.brand-txt b{font-family:var(--fh);font-weight:900;font-size:1.3rem;letter-spacing:.07em;text-transform:uppercase}
+.brand-txt small{font-family:var(--fh);font-weight:300;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--green-lit);margin-top:2px}
+.hdr-stat{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.hdr-stat .val{font-family:var(--fh);font-weight:700;font-size:1.45rem;color:var(--green-lit);letter-spacing:.04em}
+.hdr-stat .lbl{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;opacity:.55}
 
-    /* SIDE PANEL */
-    #panel {
-      position: fixed; top: var(--header-h); right: -360px; width: var(--panel-w);
-      height: calc(100% - var(--header-h));
-      background: linear-gradient(160deg, rgba(10,36,99,.92) 0%, rgba(5,20,50,.97) 100%);
-      border-left: 1px solid var(--glass-bd); backdrop-filter: blur(18px); z-index: 900;
-      transition: right .4s cubic-bezier(.22,1,.36,1); display: flex; flex-direction: column;
-      overflow: hidden; box-shadow: -6px 0 40px rgba(0,0,0,.5);
-    }
-    #panel.open { right: 0; }
-    #panel-close {
-      position: absolute; top: 12px; right: 14px; width: 32px; height: 32px;
-      border: 1px solid var(--glass-bd); border-radius: 50%; background: var(--glass);
-      color: var(--white); font-size: 1rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background .2s, transform .2s; z-index: 10;
-    }
-    #panel-close:hover { background: rgba(255,255,255,.15); transform: rotate(90deg); }
-    #panel-hero {
-      position: relative; padding: 28px 24px 20px; border-bottom: 1px solid var(--glass-bd);
-      background: linear-gradient(135deg, rgba(27,138,76,.12) 0%, rgba(10,36,99,.0) 60%);
-    }
-    #panel-flag { width: 100%; height: 110px; object-fit: cover; border-radius: 10px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.5); border: 1px solid var(--glass-bd); }
-    #panel-name { font-family: var(--font-head); font-weight: 900; font-size: 2rem; letter-spacing: .04em; text-transform: uppercase; color: var(--white); line-height: 1; }
-    #panel-capital { font-size: .75rem; letter-spacing: .2em; text-transform: uppercase; color: var(--green-lit); margin-top: 4px; opacity: .85; }
-    #panel-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; }
-    .stat-card {
-      background: var(--glass); border: 1px solid var(--glass-bd); border-radius: var(--radius);
-      padding: 16px 14px; display: flex; flex-direction: column; gap: 6px;
-      position: relative; overflow: hidden; transition: border-color .2s, background .2s;
-    }
-    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--green) 0%, var(--blue-lite) 100%); opacity: 0; transition: opacity .3s; }
-    .stat-card:hover { background: rgba(255,255,255,.1); }
-    .stat-card:hover::before { opacity: 1; }
-    .stat-card .s-icon { font-size: 1.4rem; line-height: 1; }
-    .stat-card .s-val { font-family: var(--font-head); font-weight: 700; font-size: 1.55rem; color: var(--white); letter-spacing: .02em; }
-    .stat-card .s-lbl { font-size: .64rem; letter-spacing: .18em; text-transform: uppercase; color: rgba(244,247,255,.45); }
-    #panel-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--glass-bd); display: flex; align-items: center; gap: 10px; }
-    #panel-footer img { height: 38px; filter: drop-shadow(0 0 6px rgba(39,192,106,.35)); }
-    #panel-footer span { font-family: var(--font-head); font-weight: 500; font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; opacity: .55; }
+/* ══ LAYOUT ══════════════════════════════════════════════════════ */
+#app{height:100%;padding-top:var(--hdr)}
+#map{height:100%;width:100%;background:#050d1f}
+.leaflet-control-attribution{display:none!important}
 
-    /* TOOLTIP */
-    .map-tooltip {
-      background: rgba(5,20,50,0.92) !important; border: 1px solid rgba(39,192,106,.4) !important;
-      border-radius: 8px !important; color: var(--white) !important;
-      font-family: var(--font-head) !important; font-weight: 700 !important;
-      font-size: .95rem !important; letter-spacing: .08em !important;
-      text-transform: uppercase !important; padding: 6px 12px !important;
-      box-shadow: 0 4px 16px rgba(0,0,0,.5), 0 0 12px rgba(39,192,106,.15) !important;
-      backdrop-filter: blur(8px) !important; white-space: nowrap !important;
-    }
-    .leaflet-tooltip-top.map-tooltip::before { border-top-color: rgba(39,192,106,.4) !important; }
+/* ══ LAYER SWITCHER ══════════════════════════════════════════════ */
+#layers{
+  position:fixed;bottom:26px;right:14px;z-index:900;
+  display:flex;flex-direction:column;gap:5px
+}
+.lbtn{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(5,15,40,.9);border:1px solid var(--glass-bd);
+  border-radius:9px;padding:7px 13px;cursor:pointer;
+  font-family:var(--fh);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(244,247,255,.55);transition:all .2s;backdrop-filter:blur(10px);white-space:nowrap
+}
+.lbtn:hover{background:rgba(20,50,140,.75);color:var(--white)}
+.lbtn.on{border-color:var(--green-lit);color:var(--green-lit);background:rgba(27,138,76,.15)}
+.lbtn .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
 
-    /* HINT */
-    #hint {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(5,20,50,.88); border: 1px solid var(--glass-bd);
-      border-radius: 30px; padding: 8px 20px;
-      font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
-      opacity: .75; z-index: 800; pointer-events: none; transition: opacity .5s;
-      backdrop-filter: blur(8px);
-    }
-    #hint.hidden { opacity: 0; }
-    .leaflet-control-attribution { display: none !important; }
+/* ══ SIDE PANEL ══════════════════════════════════════════════════ */
+#panel{
+  position:fixed;top:var(--hdr);right:calc(-1 * var(--panel-w) - 20px);
+  width:var(--panel-w);height:calc(100% - var(--hdr));
+  background:linear-gradient(165deg,rgba(10,36,99,.94) 0%,rgba(4,16,45,.98) 100%);
+  border-left:1px solid var(--glass-bd);backdrop-filter:blur(20px);z-index:900;
+  transition:right .42s cubic-bezier(.22,1,.36,1);
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:-8px 0 48px rgba(0,0,0,.55)
+}
+#panel.open{right:0}
 
-    /* LOADER */
-    #loader {
-      position: fixed; inset: 0; background: #050d1f; z-index: 2000;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
-      transition: opacity .5s;
-    }
-    #loader.done { opacity: 0; pointer-events: none; }
-    .spinner { width: 48px; height: 48px; border: 3px solid rgba(255,255,255,.1); border-top-color: var(--green-lit); border-radius: 50%; animation: spin .8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #loader span { font-family: var(--font-head); font-size: .75rem; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.4); }
+/* close btn */
+#pcls{
+  position:absolute;top:11px;right:12px;width:32px;height:32px;
+  border:1px solid var(--glass-bd);border-radius:50%;background:var(--glass);
+  color:var(--white);font-size:1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s,transform .2s;z-index:5
+}
+#pcls:hover{background:rgba(255,255,255,.14);transform:rotate(90deg)}
 
-    /* RESPONSIVE */
-    @media (max-width: 640px) {
-      :root { --panel-w: 100vw; }
-      #panel { top: auto; bottom: -100vh; right: 0; height: 65vh; width: 100%; border-left: none; border-top: 1px solid var(--glass-bd); border-radius: 20px 20px 0 0; transition: bottom .4s cubic-bezier(.22,1,.36,1); }
-      #panel.open { bottom: 0; right: 0; }
-      #header .brand-text span:first-child { font-size: 1.1rem; }
-      #layer-switcher { bottom: 14px; right: 8px; }
-    }
-  </style>
+/* hero */
+#phero{
+  padding:26px 22px 18px;border-bottom:1px solid var(--glass-bd);
+  background:linear-gradient(135deg,rgba(27,138,76,.1) 0%,transparent 60%);
+  flex-shrink:0
+}
+#pflag{
+  width:100%;height:108px;object-fit:cover;
+  border-radius:10px;margin-bottom:14px;
+  box-shadow:0 4px 22px rgba(0,0,0,.55);border:1px solid var(--glass-bd)
+}
+#pname{font-family:var(--fh);font-weight:900;font-size:1.95rem;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+#pcap{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--green-lit);margin-top:5px;opacity:.85}
+
+/* stats grid */
+#pstats{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:18px 18px 0}
+.sc{
+  background:var(--glass);border:1px solid var(--glass-bd);border-radius:var(--r);
+  padding:14px 12px;display:flex;flex-direction:column;gap:5px;
+  position:relative;overflow:hidden;transition:background .2s
+}
+.sc::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--green) 0%,var(--blue-lit) 100%);
+  opacity:0;transition:opacity .3s
+}
+.sc:hover{background:rgba(255,255,255,.1)}
+.sc:hover::before{opacity:1}
+.sc .ico{font-size:1.3rem;line-height:1}
+.sc .sv{font-family:var(--fh);font-weight:700;font-size:1.5rem;color:var(--white);letter-spacing:.02em}
+.sc .sl{font-size:.62rem;letter-spacing:.17em;text-transform:uppercase;color:rgba(244,247,255,.42)}
+
+/* progress bar */
+#pbar-wrap{padding:14px 18px 0;flex-shrink:0}
+#pbar-wrap label{font-size:.62rem;letter-spacing:.17em;text-transform:uppercase;color:rgba(244,247,255,.42);display:block;margin-bottom:6px}
+#pbar-track{height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+#pbar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),var(--green-lit));transition:width .6s ease}
+
+/* footer */
+#pftr{
+  margin-top:auto;padding:14px 18px;border-top:1px solid var(--glass-bd);
+  display:flex;align-items:center;gap:10px;flex-shrink:0
+}
+#pftr img{height:36px;filter:drop-shadow(0 0 6px rgba(39,192,106,.35))}
+#pftr span{font-family:var(--fh);font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;opacity:.5}
+
+/* ══ TOOLTIP ═════════════════════════════════════════════════════ */
+.mtt{
+  background:rgba(4,16,45,.94)!important;border:1px solid rgba(39,192,106,.45)!important;
+  border-radius:8px!important;color:var(--white)!important;
+  font-family:var(--fh)!important;font-weight:700!important;
+  font-size:.92rem!important;letter-spacing:.08em!important;text-transform:uppercase!important;
+  padding:6px 12px!important;white-space:nowrap!important;
+  box-shadow:0 4px 18px rgba(0,0,0,.55),0 0 14px rgba(39,192,106,.12)!important;
+  backdrop-filter:blur(8px)!important
+}
+.leaflet-tooltip-top.mtt::before{border-top-color:rgba(39,192,106,.4)!important}
+
+/* ══ HINT ════════════════════════════════════════════════════════ */
+#hint{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  background:rgba(4,16,45,.88);border:1px solid var(--glass-bd);
+  border-radius:30px;padding:7px 20px;
+  font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  opacity:.72;z-index:800;pointer-events:none;transition:opacity .6s;
+  backdrop-filter:blur(8px)
+}
+#hint.gone{opacity:0}
+
+/* ══ RESPONSIVE ══════════════════════════════════════════════════ */
+@media(max-width:640px){
+  :root{--panel-w:100vw}
+  #panel{top:auto;bottom:calc(-65vh - 20px);right:0;height:65vh;
+    border-left:none;border-top:1px solid var(--glass-bd);
+    border-radius:20px 20px 0 0;
+    transition:bottom .42s cubic-bezier(.22,1,.36,1)}
+  #panel.open{bottom:0;right:0}
+  .brand-txt b{font-size:1.05rem}
+  #layers{bottom:12px;right:8px}
+  .lbtn{font-size:.7rem;padding:6px 10px}
+  #pstats{grid-template-columns:1fr 1fr}
+}
+</style>
 </head>
 <body>
 
-<!-- LOADER -->
+<!-- ── LOADER ───────────────────────────────────────────────────── -->
 <div id="loader">
-  <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true"
-       style="height:70px;filter:drop-shadow(0 0 16px rgba(39,192,106,.5))" alt="logo" />
+  <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="logo"/>
   <div class="spinner"></div>
-  <span>Cargando mapa electoral…</span>
+  <p>Cargando mapa electoral de Carabobo…</p>
 </div>
 
-<!-- HEADER -->
-<header id="header">
+<!-- ── HEADER ───────────────────────────────────────────────────── -->
+<header id="hdr">
   <div class="brand">
-    <img class="logo" src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Concertación Carabobo" />
-    <div class="brand-text">
-      <span>Concertación Carabobo</span>
-      <span>Mapa Electoral Estratégico</span>
+    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo"/>
+    <div class="brand-txt">
+      <b>Concertación Carabobo</b>
+      <small>Mapa Electoral Estratégico 2025</small>
     </div>
   </div>
-  <div class="header-stat">
+  <div class="hdr-stat">
     <span class="val">1.663.942</span>
-    <span class="lbl">Electores en Carabobo</span>
+    <span class="lbl">Electores · Estado Carabobo</span>
   </div>
 </header>
 
-<div id="app">
-  <div id="map"></div>
+<!-- ── MAP ──────────────────────────────────────────────────────── -->
+<div id="app"><div id="map"></div></div>
+
+<!-- ── LAYER SWITCHER ───────────────────────────────────────────── -->
+<div id="layers">
+  <button class="lbtn on" id="lb-dark"  onclick="setLayer('dark')"><span class="dot"></span>Oscuro</button>
+  <button class="lbtn"    id="lb-osm"   onclick="setLayer('osm')"><span class="dot"></span>Mapa</button>
+  <button class="lbtn"    id="lb-sat"   onclick="setLayer('sat')"><span class="dot"></span>Satélite</button>
+  <button class="lbtn"    id="lb-topo"  onclick="setLayer('topo')"><span class="dot"></span>Topográfico</button>
 </div>
 
-<!-- LAYER SWITCHER -->
-<div id="layer-switcher">
-  <button class="layer-btn active" id="btn-dark" onclick="switchLayer('dark')"><span class="dot"></span>Oscuro</button>
-  <button class="layer-btn" id="btn-osm" onclick="switchLayer('osm')"><span class="dot"></span>Mapa</button>
-  <button class="layer-btn" id="btn-sat" onclick="switchLayer('sat')"><span class="dot"></span>Satélite</button>
-  <button class="layer-btn" id="btn-topo" onclick="switchLayer('topo')"><span class="dot"></span>Topográfico</button>
-</div>
-
-<!-- SIDE PANEL -->
+<!-- ── SIDE PANEL ───────────────────────────────────────────────── -->
 <div id="panel">
-  <button id="panel-close" title="Cerrar">✕</button>
-  <div id="panel-hero">
-    <img id="panel-flag" src="" alt="Bandera" />
-    <div id="panel-name">—</div>
-    <div id="panel-capital">Capital: —</div>
+  <button id="pcls" title="Cerrar">✕</button>
+  <div id="phero">
+    <img id="pflag" src="" alt="Bandera"/>
+    <div id="pname">—</div>
+    <div id="pcap">Capital: —</div>
   </div>
-  <div id="panel-stats">
-    <div class="stat-card"><span class="s-icon">🗳️</span><span class="s-val" id="stat-mesas">—</span><span class="s-lbl">Mesas</span></div>
-    <div class="stat-card"><span class="s-icon">👥</span><span class="s-val" id="stat-electores">—</span><span class="s-lbl">Electores</span></div>
-    <div class="stat-card"><span class="s-icon">📊</span><span class="s-val" id="stat-pct">—</span><span class="s-lbl">% del Estado</span></div>
-    <div class="stat-card"><span class="s-icon">🏛️</span><span class="s-val" id="stat-ratio">—</span><span class="s-lbl">Electores/Mesa</span></div>
+  <div id="pstats">
+    <div class="sc"><span class="ico">🗳️</span><span class="sv" id="sv-mesas">—</span><span class="sl">Mesas</span></div>
+    <div class="sc"><span class="ico">👥</span><span class="sv" id="sv-elec">—</span><span class="sl">Electores</span></div>
+    <div class="sc"><span class="ico">📊</span><span class="sv" id="sv-pct">—</span><span class="sl">% del Estado</span></div>
+    <div class="sc"><span class="ico">🏛️</span><span class="sv" id="sv-ratio">—</span><span class="sl">Elec / Mesa</span></div>
   </div>
-  <div id="panel-footer">
-    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo" />
+  <div id="pbar-wrap">
+    <label>Peso electoral en el estado</label>
+    <div id="pbar-track"><div id="pbar-fill" style="width:0%"></div></div>
+  </div>
+  <div id="pftr">
+    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo"/>
     <span>Concertación Carabobo · 2025</span>
   </div>
 </div>
 
-<div id="hint">Haz clic en un municipio para ver su información</div>
+<div id="hint">Selecciona un municipio para ver su información</div>
 
+<!-- ── LEAFLET ───────────────────────────────────────────────────── -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════
    DATOS DE MUNICIPIOS
-════════════════════════════════════════════════════════════ */
-const MUNICIPIOS = {
-  "Valencia":       { capital:"Valencia",      mesas:742,  electores:613670,  flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Valencia.jpg?raw=true" },
-  "Diego Ibarra":   { capital:"Mariara",       mesas:90,   electores:71951,   flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Diego%20Ibarra.jpg?raw=true" },
-  "Carlos Arvelo":  { capital:"Güigüe",        mesas:147,  electores:107312,  flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/carlos%20arvelo.jpg?raw=true" },
-  "Guacara":        { capital:"Guacara",       mesas:153,  electores:131072,  flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Guacara.jpg?raw=true" },
-  "Juan José Mora": { capital:"Morón",         mesas:78,   electores:53965,   flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Juan%20Jose%20Mora.jpg?raw=true" },
-  "Libertador":     { capital:"Tocuyito",      mesas:159,  electores:124901,  flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Libertador.jpg?raw=true" },
-  "Los Guayos":     { capital:"Los Guayos",    mesas:131,  electores:106124,  flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Los%20Guayos.jpg?raw=true" },
-  "Miranda":        { capital:"Miranda",       mesas:31,   electores:22578,   flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Miranda.jpg?raw=true" },
-  "Montalbán":      { capital:"Montalbán",     mesas:24,   electores:19238,   flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Montalban.jpg?raw=true" },
-  "Naguanagua":     { capital:"Naguanagua",    mesas:127,  electores:106869,  flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Naguanagua.jpg?raw=true" },
-  "Puerto Cabello": { capital:"Puerto Cabello",mesas:188,  electores:150415,  flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Puerto%20Cabello.jpg?raw=true" },
-  "San Diego":      { capital:"San Diego",     mesas:81,   electores:72497,   flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20diego.jpg?raw=true" },
-  "San Joaquín":    { capital:"San Joaquín",   mesas:56,   electores:45866,   flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20Joaquin.jpg?raw=true" },
-  "Bejuma":         { capital:"Bejuma",        mesas:52,   electores:37484,   flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Bejuma.jpg?raw=true" },
+══════════════════════════════════════════════════════════════════ */
+const DATA = {
+  "Valencia":       {capital:"Valencia",      mesas:742,  elec:613670,  lat:10.153985, lng:-67.988735, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Valencia.jpg?raw=true"},
+  "Diego Ibarra":   {capital:"Mariara",       mesas:90,   elec:71951,   lat:10.288812, lng:-67.721095, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Diego%20Ibarra.jpg?raw=true"},
+  "Carlos Arvelo":  {capital:"Güigüe",        mesas:147,  elec:107312,  lat:10.083036, lng:-67.780881, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/carlos%20arvelo.jpg?raw=true"},
+  "Guacara":        {capital:"Guacara",       mesas:153,  elec:131072,  lat:10.263974, lng:-67.890448, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Guacara.jpg?raw=true"},
+  "Juan José Mora": {capital:"Morón",         mesas:78,   elec:53965,   lat:10.491015, lng:-68.198705, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Juan%20Jose%20Mora.jpg?raw=true"},
+  "Libertador":     {capital:"Tocuyito",      mesas:159,  elec:124901,  lat:10.015869, lng:-68.154266, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Libertador.jpg?raw=true"},
+  "Los Guayos":     {capital:"Los Guayos",   mesas:131,  elec:106124,  lat:10.172879, lng:-67.925227, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Los%20Guayos.jpg?raw=true"},
+  "Miranda":        {capital:"Miranda",       mesas:31,   elec:22578,   lat:10.149892, lng:-68.401530, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Miranda.jpg?raw=true"},
+  "Montalban":      {capital:"Montalbán",     mesas:24,   elec:19238,   lat:10.213548, lng:-68.325858, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Montalban.jpg?raw=true"},
+  "Naguanagua":     {capital:"Naguanagua",    mesas:127,  elec:106869,  lat:10.268467, lng:-68.015500, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Naguanagua.jpg?raw=true"},
+  "Puerto Cabello": {capital:"Puerto Cabello",mesas:188,  elec:150415,  lat:10.471149, lng:-68.024911, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Puerto%20Cabello.jpg?raw=true"},
+  "San Diego":      {capital:"San Diego",     mesas:81,   elec:72497,   lat:10.258939, lng:-67.963485, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20diego.jpg?raw=true"},
+  "San Joaquin":    {capital:"San Joaquín",   mesas:56,   elec:45866,   lat:10.259778, lng:-67.801935, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20Joaquin.jpg?raw=true"},
+  "Bejuma":         {capital:"Bejuma",        mesas:52,   elec:37484,   lat:10.176950, lng:-68.259151, flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Bejuma.jpg?raw=true"},
 };
 
-const TOTAL_ELECTORES = 1663942;
-
-/* ════════════════════════════════════════════════════════════
-   GEOJSON REAL DE CARABOBO (polígonos precisos GADM)
-════════════════════════════════════════════════════════════ */
-const CARABOBO_GEOJSON = {
-  "type":"FeatureCollection",
-  "features":[
-    {
-      "type":"Feature","properties":{"NAME_2":"Valencia"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.066,10.106],[-68.040,10.095],[-68.015,10.083],[-67.997,10.070],
-        [-67.975,10.055],[-67.958,10.048],[-67.940,10.052],[-67.928,10.063],
-        [-67.920,10.078],[-67.915,10.098],[-67.918,10.118],[-67.928,10.135],
-        [-67.942,10.148],[-67.960,10.158],[-67.980,10.163],[-68.002,10.162],
-        [-68.022,10.155],[-68.040,10.143],[-68.053,10.130],[-68.062,10.118],
-        [-68.066,10.106]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Naguanagua"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.040,10.162],[-68.022,10.155],[-68.002,10.162],[-67.990,10.172],
-        [-67.982,10.185],[-67.980,10.200],[-67.985,10.215],[-67.995,10.228],
-        [-68.010,10.237],[-68.028,10.240],[-68.045,10.235],[-68.058,10.224],
-        [-68.065,10.210],[-68.065,10.194],[-68.058,10.178],[-68.040,10.162]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"San Diego"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-67.940,10.148],[-67.928,10.135],[-67.918,10.118],[-67.905,10.112],
-        [-67.888,10.112],[-67.873,10.118],[-67.862,10.130],[-67.858,10.145],
-        [-67.862,10.160],[-67.872,10.173],[-67.888,10.181],[-67.905,10.183],
-        [-67.920,10.179],[-67.933,10.168],[-67.940,10.148]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Los Guayos"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-67.975,10.055],[-67.958,10.048],[-67.940,10.052],[-67.925,10.047],
-        [-67.910,10.040],[-67.898,10.030],[-67.892,10.016],[-67.892,10.001],
-        [-67.898,9.988],[-67.910,9.978],[-67.925,9.973],[-67.942,9.975],
-        [-67.957,9.984],[-67.967,9.998],[-67.970,10.013],[-67.967,10.030],
-        [-67.975,10.055]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Guacara"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.002,10.162],[-67.980,10.163],[-67.960,10.158],[-67.948,10.168],
-        [-67.940,10.182],[-67.938,10.198],[-67.943,10.214],[-67.955,10.226],
-        [-67.972,10.232],[-67.990,10.230],[-68.005,10.222],[-68.015,10.208],
-        [-68.017,10.192],[-68.010,10.177],[-68.002,10.162]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"San Joaquín"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-67.862,10.130],[-67.848,10.120],[-67.830,10.115],[-67.812,10.116],
-        [-67.797,10.124],[-67.787,10.137],[-67.785,10.153],[-67.790,10.168],
-        [-67.802,10.180],[-67.818,10.187],[-67.836,10.187],[-67.852,10.181],
-        [-67.862,10.173],[-67.862,10.160],[-67.858,10.145],[-67.862,10.130]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Diego Ibarra"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-67.910,10.040],[-67.892,10.035],[-67.872,10.035],[-67.852,10.040],
-        [-67.835,10.050],[-67.822,10.064],[-67.815,10.082],[-67.815,10.100],
-        [-67.822,10.116],[-67.835,10.118],[-67.848,10.120],[-67.862,10.130],
-        [-67.873,10.118],[-67.888,10.112],[-67.905,10.112],[-67.905,10.095],
-        [-67.898,10.075],[-67.898,10.055],[-67.910,10.040]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Carlos Arvelo"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-67.892,10.001],[-67.880,9.985],[-67.862,9.972],[-67.840,9.964],
-        [-67.818,9.962],[-67.797,9.967],[-67.780,9.978],[-67.768,9.994],
-        [-67.763,10.012],[-67.766,10.030],[-67.776,10.046],[-67.792,10.057],
-        [-67.810,10.062],[-67.828,10.060],[-67.843,10.052],[-67.852,10.040],
-        [-67.870,10.035],[-67.892,10.016],[-67.892,10.001]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Libertador"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.066,10.106],[-68.062,10.118],[-68.053,10.130],[-68.040,10.143],
-        [-68.040,10.095],[-68.038,10.080],[-68.030,10.066],[-68.018,10.055],
-        [-68.002,10.048],[-67.985,10.045],[-67.968,10.050],[-67.975,10.055],
-        [-67.967,10.030],[-67.970,10.013],[-67.972,9.998],[-67.985,9.990],
-        [-68.000,9.985],[-68.018,9.985],[-68.035,9.992],[-68.050,10.003],
-        [-68.060,10.018],[-68.065,10.035],[-68.066,10.052],[-68.066,10.106]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Puerto Cabello"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.105,10.470],[-68.075,10.460],[-68.045,10.455],[-68.015,10.455],
-        [-67.988,10.460],[-67.968,10.472],[-67.955,10.488],[-67.950,10.505],
-        [-67.953,10.522],[-67.963,10.537],[-67.978,10.548],[-67.998,10.553],
-        [-68.020,10.552],[-68.040,10.545],[-68.058,10.532],[-68.070,10.515],
-        [-68.078,10.495],[-68.105,10.470]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Juan José Mora"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.250,10.468],[-68.220,10.455],[-68.190,10.450],[-68.162,10.452],
-        [-68.138,10.462],[-68.118,10.475],[-68.105,10.470],[-68.078,10.495],
-        [-68.085,10.510],[-68.098,10.525],[-68.115,10.535],[-68.135,10.538],
-        [-68.158,10.535],[-68.178,10.525],[-68.195,10.510],[-68.215,10.495],
-        [-68.232,10.485],[-68.250,10.468]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Montalbán"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.340,10.235],[-68.312,10.220],[-68.282,10.212],[-68.252,10.212],
-        [-68.225,10.220],[-68.202,10.235],[-68.185,10.254],[-68.178,10.276],
-        [-68.180,10.298],[-68.192,10.318],[-68.210,10.332],[-68.232,10.340],
-        [-68.255,10.340],[-68.278,10.332],[-68.298,10.318],[-68.312,10.298],
-        [-68.318,10.278],[-68.315,10.256],[-68.340,10.235]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Bejuma"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.280,10.105],[-68.252,10.092],[-68.222,10.085],[-68.192,10.085],
-        [-68.165,10.092],[-68.142,10.106],[-68.125,10.124],[-68.118,10.146],
-        [-68.120,10.168],[-68.132,10.188],[-68.150,10.204],[-68.172,10.213],
-        [-68.196,10.215],[-68.220,10.210],[-68.242,10.198],[-68.260,10.180],
-        [-68.270,10.158],[-68.272,10.135],[-68.280,10.105]
-      ]]}
-    },
-    {
-      "type":"Feature","properties":{"NAME_2":"Miranda"},
-      "geometry":{"type":"Polygon","coordinates":[[
-        [-68.175,10.215],[-68.155,10.200],[-68.132,10.188],[-68.120,10.168],
-        [-68.115,10.185],[-68.108,10.200],[-68.097,10.213],[-68.082,10.222],
-        [-68.065,10.226],[-68.048,10.222],[-68.035,10.212],[-68.028,10.198],
-        [-68.028,10.182],[-68.035,10.165],[-68.048,10.152],[-68.065,10.145],
-        [-68.080,10.148],[-68.092,10.158],[-68.100,10.172],[-68.110,10.185],
-        [-68.125,10.195],[-68.145,10.205],[-68.165,10.210],[-68.175,10.215]
-      ]]}
-    }
-  ]
+// Alias para normalización de nombres del GeoJSON
+const ALIAS = {
+  "montalban":"Montalban","montalbán":"Montalban",
+  "san joaquín":"San Joaquin","san joaquin":"San Joaquin",
+  "juan josé mora":"Juan José Mora","juan jose mora":"Juan José Mora",
 };
 
-/* ════════════════════════════════════════════════════════════
-   MAPA + CAPAS BASE
-════════════════════════════════════════════════════════════ */
+const TOTAL = 1663942;
+
+/* ══════════════════════════════════════════════════════════════════
+   MAPA
+══════════════════════════════════════════════════════════════════ */
 const TILES = {
-  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-         { subdomains:'abcd', maxZoom:19 }),
-  osm:  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-         { subdomains:'abc', maxZoom:19 }),
-  sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-         { maxZoom:19 }),
-  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-         { subdomains:'abc', maxZoom:17 }),
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}),
+  osm:  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:19}),
+  sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}),
+  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:17}),
 };
 
-const map = L.map('map', {
-  center:[10.18, -68.0], zoom:10,
-  zoomControl:true, attributionControl:false,
+const map = L.map('map',{
+  center:[10.22,-68.05],zoom:10,
+  zoomControl:true,attributionControl:false,
   layers:[TILES.dark]
 });
 map.zoomControl.setPosition('topright');
 
-let currentTile = 'dark';
-function switchLayer(name) {
-  map.removeLayer(TILES[currentTile]);
+let curTile='dark';
+function setLayer(name){
+  map.removeLayer(TILES[curTile]);
   map.addLayer(TILES[name]);
   TILES[name].bringToBack();
-  if (geojsonLayer) geojsonLayer.bringToFront();
-  currentTile = name;
-  document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-' + name).classList.add('active');
+  if(geoL) geoL.bringToFront();
+  curTile=name;
+  document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('lb-'+name).classList.add('on');
 }
 
-/* ════════════════════════════════════════════════════════════
-   ESTILOS
-════════════════════════════════════════════════════════════ */
-const S = {
-  normal:   f => ({ color:'#27c06a', weight:1.8, fillColor:'#1a3a8f', fillOpacity:0.55, opacity:1 }),
-  hover:        { color:'#5b9fff',  weight:2.5, fillColor:'#2255c8', fillOpacity:0.75, opacity:1 },
-  selected:     { color:'#27c06a',  weight:3,   fillColor:'#1b8a4c', fillOpacity:0.72, opacity:1 },
-  dim:          { color:'#0d2060',  weight:1,   fillColor:'#07163a', fillOpacity:0.25, opacity:0.4 },
+/* ══════════════════════════════════════════════════════════════════
+   ESTILOS VECTORIALES
+══════════════════════════════════════════════════════════════════ */
+const ST = {
+  base:    {color:'#27c06a',weight:1.8,fillColor:'#1a3a8f',fillOpacity:0.55,opacity:1},
+  hover:   {color:'#5b9fff',weight:2.8,fillColor:'#2060d8',fillOpacity:0.78,opacity:1},
+  sel:     {color:'#27c06a',weight:3,  fillColor:'#1b8a4c',fillOpacity:0.75,opacity:1},
+  dim:     {color:'#0d2060',weight:1,  fillColor:'#050f2a',fillOpacity:0.22,opacity:0.35},
 };
 
-let selectedLayer = null;
-let geojsonLayer  = null;
+let selL=null, geoL=null;
 
-/* ════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════
    PANEL
-════════════════════════════════════════════════════════════ */
-const panel    = document.getElementById('panel');
-const hint     = document.getElementById('hint');
-let hintHidden = false;
+══════════════════════════════════════════════════════════════════ */
+const panel=document.getElementById('panel');
+const hint=document.getElementById('hint');
+let hintGone=false;
 
-function fmt(n){ return n.toLocaleString('es-VE'); }
+function n(v){return v.toLocaleString('es-VE')}
 
-function openPanel(key) {
-  const d = MUNICIPIOS[key]; if(!d) return;
-  document.getElementById('panel-flag').src           = d.flag;
-  document.getElementById('panel-name').textContent   = key;
-  document.getElementById('panel-capital').textContent= 'Capital: ' + d.capital;
-  document.getElementById('stat-mesas').textContent   = fmt(d.mesas);
-  document.getElementById('stat-electores').textContent = fmt(d.electores);
-  document.getElementById('stat-pct').textContent     = ((d.electores/TOTAL_ELECTORES)*100).toFixed(1)+'%';
-  document.getElementById('stat-ratio').textContent   = fmt(Math.round(d.electores/d.mesas));
+function openPanel(key){
+  const d=DATA[key]; if(!d) return;
+  document.getElementById('pflag').src=d.flag;
+  document.getElementById('pname').textContent=key;
+  document.getElementById('pcap').textContent='Capital: '+d.capital;
+  document.getElementById('sv-mesas').textContent=n(d.mesas);
+  document.getElementById('sv-elec').textContent=n(d.elec);
+  const pct=((d.elec/TOTAL)*100);
+  document.getElementById('sv-pct').textContent=pct.toFixed(1)+'%';
+  document.getElementById('sv-ratio').textContent=n(Math.round(d.elec/d.mesas));
+  document.getElementById('pbar-fill').style.width=Math.min(pct*3,100)+'%';
   panel.classList.add('open');
-  if(!hintHidden){ hint.classList.add('hidden'); hintHidden=true; }
+  if(!hintGone){hint.classList.add('gone');hintGone=true}
 }
 
-function closePanel() {
+function closePanel(){
   panel.classList.remove('open');
-  if(geojsonLayer) geojsonLayer.eachLayer(l => l.setStyle(S.normal(l.feature)));
-  selectedLayer = null;
+  if(geoL) geoL.eachLayer(l=>l.setStyle(ST.base));
+  selL=null;
 }
-document.getElementById('panel-close').addEventListener('click', closePanel);
+document.getElementById('pcls').addEventListener('click',closePanel);
 
-/* ════════════════════════════════════════════════════════════
-   MATCH DE NOMBRES
-════════════════════════════════════════════════════════════ */
-function matchKey(raw) {
+/* ══════════════════════════════════════════════════════════════════
+   NORMALIZACIÓN DE NOMBRES
+══════════════════════════════════════════════════════════════════ */
+function norm(s){
+  return (s||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+function matchKey(raw){
   if(!raw) return null;
-  raw = raw.trim();
-  if(MUNICIPIOS[raw]) return raw;
-  const lo = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  for(const k of Object.keys(MUNICIPIOS)){
-    const kn = k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    if(lo===kn || lo.includes(kn) || kn.includes(lo)) return k;
-  }
+  const lo=norm(raw);
+  if(ALIAS[lo]) return ALIAS[lo];
+  // exacto
+  for(const k of Object.keys(DATA)){if(norm(k)===lo) return k}
+  // parcial
+  for(const k of Object.keys(DATA)){if(lo.includes(norm(k))||norm(k).includes(lo)) return k}
   return null;
 }
 
-/* ════════════════════════════════════════════════════════════
-   INTERACTIONS
-════════════════════════════════════════════════════════════ */
-function onEachFeature(feature, layer) {
-  const raw = feature.properties.NAME_2 || '';
-  const key = matchKey(raw) || raw;
-  layer.bindTooltip(key, { className:'map-tooltip', sticky:true, offset:[12,0] });
+/* ══════════════════════════════════════════════════════════════════
+   INTERACCIONES DE CAPA
+══════════════════════════════════════════════════════════════════ */
+function onEach(feature,layer){
+  const raw=feature.properties.NAME_2||feature.properties.name||'';
+  const key=matchKey(raw)||raw;
 
-  layer.on('mouseover', function() {
-    if(this===selectedLayer) return;
-    this.setStyle(S.hover); this.bringToFront();
+  layer.bindTooltip(key,{className:'mtt',sticky:true,offset:[14,0]});
+
+  layer.on('mouseover',function(){
+    if(this===selL) return;
+    this.setStyle(ST.hover); this.bringToFront();
   });
-  layer.on('mouseout', function() {
-    if(this===selectedLayer) return;
-    this.setStyle(selectedLayer ? S.dim : S.normal(this.feature));
+  layer.on('mouseout',function(){
+    if(this===selL) return;
+    this.setStyle(selL ? ST.dim : ST.base);
   });
-  layer.on('click', function() {
-    if(selectedLayer && selectedLayer!==this) selectedLayer.setStyle(S.dim);
-    selectedLayer = this;
-    geojsonLayer.eachLayer(l => { if(l!==selectedLayer) l.setStyle(S.dim); });
-    selectedLayer.setStyle(S.selected); selectedLayer.bringToFront();
-    map.fitBounds(selectedLayer.getBounds(), { padding:[60,60], maxZoom:13 });
-    const mk = matchKey(raw); if(mk) openPanel(mk);
+  layer.on('click',function(e){
+    L.DomEvent.stopPropagation(e);
+    if(selL && selL!==this) selL.setStyle(ST.dim);
+    selL=this;
+    geoL.eachLayer(l=>{if(l!==selL) l.setStyle(ST.dim)});
+    selL.setStyle(ST.sel); selL.bringToFront();
+    map.fitBounds(selL.getBounds(),{padding:[60,60],maxZoom:13});
+    const mk=matchKey(raw); if(mk) openPanel(mk);
   });
 }
 
-/* ════════════════════════════════════════════════════════════
-   CARGAR GEOJSON
-════════════════════════════════════════════════════════════ */
-function loadMap(geojson) {
-  geojsonLayer = L.geoJSON(geojson, { style:S.normal, onEachFeature }).addTo(map);
-  geojsonLayer.bringToFront();
-  map.fitBounds(geojsonLayer.getBounds(), { padding:[30,30] });
+/* ══════════════════════════════════════════════════════════════════
+   CARGA DEL GEOJSON (filtrado a Carabobo)
+══════════════════════════════════════════════════════════════════ */
+function buildMap(geojson){
+  // Filtrar solo municipios del estado Carabobo
+  const feats = geojson.features.filter(f=>{
+    const n1=(f.properties.NAME_1||f.properties.adm1||'').toLowerCase();
+    return n1.includes('carabobo');
+  });
+
+  // Si no hay features de Carabobo (estructura diferente), usar todo
+  const collection = {type:'FeatureCollection', features: feats.length ? feats : geojson.features};
+
+  geoL = L.geoJSON(collection,{style:()=>ST.base, onEachFeature:onEach}).addTo(map);
+  geoL.bringToFront();
+  map.fitBounds(geoL.getBounds(),{padding:[28,28]});
+
+  // Ocultar loader
   setTimeout(()=>{
-    document.getElementById('loader').classList.add('done');
-    setTimeout(()=>{ const l=document.getElementById('loader'); if(l) l.remove(); },600);
-  },500);
+    const l=document.getElementById('loader');
+    l.classList.add('done');
+    setTimeout(()=>{if(l.parentNode)l.remove()},700);
+  },400);
 }
 
-/* Intentar cargar ven_admin2.json externo; si falla usar el GeoJSON embebido */
-fetch('ven_admin2.json')
-  .then(r => { if(!r.ok) throw 0; return r.json(); })
-  .then(data => {
-    const feats = data.features.filter(f => {
-      const a = (f.properties.NAME_1||f.properties.adm1||'').toLowerCase();
-      return a.includes('carabobo');
+/* Carga desde GitHub raw */
+const GEOJSON_URL='https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/20fa810cbe0cf9a47bf6ea735241492e515fd0b6/ven_admin2.json';
+
+fetch(GEOJSON_URL)
+  .then(r=>{if(!r.ok) throw new Error('HTTP '+r.status); return r.json()})
+  .then(data=>buildMap(data))
+  .catch(err=>{
+    console.warn('No se pudo cargar GeoJSON:',err);
+    // Fallback: marcadores de posición exacta por municipio
+    loadMarkerFallback();
+  });
+
+/* ══════════════════════════════════════════════════════════════════
+   FALLBACK CON MARCADORES SI EL GEOJSON FALLA
+══════════════════════════════════════════════════════════════════ */
+function loadMarkerFallback(){
+  const bounds=[];
+  Object.entries(DATA).forEach(([key,d])=>{
+    const marker=L.circleMarker([d.lat,d.lng],{
+      radius:Math.max(10, Math.sqrt(d.elec/1000)),
+      color:'#27c06a',weight:2,
+      fillColor:'#1a3a8f',fillOpacity:0.75
+    }).addTo(map);
+    marker.bindTooltip(key,{className:'mtt',sticky:true});
+    marker.on('click',()=>{
+      map.setView([d.lat,d.lng],12);
+      openPanel(key);
     });
-    loadMap({ type:'FeatureCollection', features: feats.length ? feats : data.features });
-  })
-  .catch(() => loadMap(CARABOBO_GEOJSON));
+    bounds.push([d.lat,d.lng]);
+  });
+  if(bounds.length) map.fitBounds(bounds,{padding:[30,30]});
+
+  // Aviso
+  const info=L.control({position:'bottomleft'});
+  info.onAdd=()=>{
+    const d=L.DomUtil.create('div');
+    d.innerHTML='<div style="background:rgba(4,16,45,.9);border:1px solid rgba(255,160,0,.4);border-radius:9px;padding:9px 14px;font-family:\'Barlow Condensed\',sans-serif;font-size:.72rem;letter-spacing:.1em;color:rgba(255,200,100,.88);max-width:260px">⚠ GeoJSON no disponible. Asegúrate de que <b>ven_admin2.json</b> esté en la raíz del repo y que GitHub Pages tenga CORS habilitado.</div>';
+    return d;
+  };
+  info.addTo(map);
+
+  const l=document.getElementById('loader');
+  l.classList.add('done');
+  setTimeout(()=>{if(l.parentNode)l.remove()},700);
+}
 
 /* Click en mapa vacío → cerrar panel */
-map.on('click', () => { /* gestionado por layers */ });
+map.on('click',()=>closePanel());
 </script>
 </body>
 </html>
