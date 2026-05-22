@@ -745,7 +745,6 @@
         const statElectores = document.getElementById('statElectores');
 
         // ============ MUNICIPALITY DATA ============
-        // Extensible data structure for all 14 municipalities of Carabobo
         const municipiosData = {
             'valencia': {
                 nombre: 'Valencia',
@@ -754,7 +753,6 @@
                 electores: 613670,
                 coords: [10.153985, -67.988735],
                 bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Valencia.jpg?raw=true',
-                // Futuros campos: lideres, notasDeCampo, historico, metas
             },
             'diego ibarra': {
                 nombre: 'Diego Ibarra',
@@ -867,9 +865,9 @@
             if (!str) return '';
             return str
                 .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+                .replace(/[\u0300-\u036f]/g, '')
                 .toLowerCase()
-                .replace(/[^a-z0-9\s]/g, '') // remove special chars except spaces
+                .replace(/[^a-z0-9\s]/g, '')
                 .trim();
         }
 
@@ -878,24 +876,53 @@
             return Number(num).toLocaleString('es-VE');
         }
 
-        // ============ MATCH MUNICIPALITY NAME TO DATA KEY ============
+        // ============ ROBUST MUNICIPALITY MATCHING ============
+        // Iterates over all property values of a GeoJSON feature, normalizes them,
+        // and returns the first matching municipiosData entry, or null.
+        function findMunicipioDataFromFeature(feature) {
+            if (!feature || !feature.properties) return null;
+            const props = feature.properties;
+
+            // Collect all string property values
+            const candidateValues = Object.values(props).filter(v => typeof v === 'string' && v.trim().length > 0);
+
+            for (const val of candidateValues) {
+                const normalizedVal = normalize(val);
+                if (!normalizedVal) continue;
+
+                // Direct key match
+                if (municipiosData[normalizedVal]) {
+                    console.log(`✅ Encontrado por clave exacta: "${val}" → "${normalizedVal}"`);
+                    return municipiosData[normalizedVal];
+                }
+
+                // Check if any municipio key is contained within the value or vice versa
+                for (const [key, data] of Object.entries(municipiosData)) {
+                    if (normalizedVal.includes(key) || key.includes(normalizedVal)) {
+                        console.log(`✅ Encontrado por inclusión: "${val}" ↔ "${key}"`);
+                        return data;
+                    }
+                    // Also compare against the display name
+                    const normalizedNombre = normalize(data.nombre);
+                    if (normalizedVal === normalizedNombre ||
+                        normalizedVal.includes(normalizedNombre) ||
+                        normalizedNombre.includes(normalizedVal)) {
+                        console.log(`✅ Encontrado por nombre: "${val}" ↔ "${data.nombre}"`);
+                        return data;
+                    }
+                }
+            }
+            console.warn(`⚠️ No se encontró municipio para feature. Propiedades:`, props);
+            return null;
+        }
+
+        // Keep legacy function for backward compatibility (not used directly now)
         function findMunicipioData(geoJsonName) {
             const normalizedInput = normalize(geoJsonName);
-            // Direct match
-            if (municipiosData[normalizedInput]) {
-                return municipiosData[normalizedInput];
-            }
-            // Fuzzy: check if any key contains the input or vice versa
+            if (municipiosData[normalizedInput]) return municipiosData[normalizedInput];
             for (const [key, data] of Object.entries(municipiosData)) {
-                if (key.includes(normalizedInput) || normalizedInput.includes(key)) {
-                    return data;
-                }
-            }
-            // Try matching just the municipality name field
-            for (const [key, data] of Object.entries(municipiosData)) {
-                if (normalize(data.nombre) === normalizedInput) {
-                    return data;
-                }
+                if (key.includes(normalizedInput) || normalizedInput.includes(key)) return data;
+                if (normalize(data.nombre) === normalizedInput) return data;
             }
             return null;
         }
@@ -928,11 +955,9 @@
                 maxZoom: 19,
             });
 
-        // Default: street map
         streetLayer.addTo(map);
         let currentBaseLayer = 'street';
 
-        // ---- Layer toggle buttons ----
         function setBaseLayer(layerType) {
             if (layerType === 'street' && currentBaseLayer !== 'street') {
                 map.removeLayer(satelliteLayer);
@@ -954,11 +979,10 @@
 
         // ============ GEOJSON LAYER & STATE ============
         let geoJsonLayer = null;
-        let allPolygonLayers = []; // track all L.Polygon instances
-        let selectedLayer = null; // currently selected polygon
+        let allPolygonLayers = [];
+        let selectedLayer = null;
         let isPanelOpen = false;
 
-        // Style definitions
         const defaultStyle = {
             fillColor: '#1a8a4a',
             fillOpacity: 0.38,
@@ -995,38 +1019,28 @@
             opacity: 0.5,
         };
 
-        // ============ RESET ALL LAYERS TO DEFAULT ============
         function resetAllLayers() {
             allPolygonLayers.forEach(layer => {
                 layer.setStyle(defaultStyle);
-                // Remove glow class
-                if (layer._path) {
-                    layer._path.classList.remove('glow-hover');
-                }
+                if (layer._path) layer._path.classList.remove('glow-hover');
             });
             selectedLayer = null;
             mapEl.classList.remove('dimmed-bg');
         }
 
-        // ============ DIM ALL EXCEPT SELECTED ============
         function dimAllExcept(selected) {
             allPolygonLayers.forEach(layer => {
                 if (layer === selected) {
                     layer.setStyle(selectedStyle);
-                    if (layer._path) {
-                        layer._path.classList.add('glow-hover');
-                    }
+                    if (layer._path) layer._path.classList.add('glow-hover');
                 } else {
                     layer.setStyle(dimmedStyle);
-                    if (layer._path) {
-                        layer._path.classList.remove('glow-hover');
-                    }
+                    if (layer._path) layer._path.classList.remove('glow-hover');
                 }
             });
             mapEl.classList.add('dimmed-bg');
         }
 
-        // ============ OPEN SIDE PANEL ============
         function openSidePanel(municipioData) {
             if (!municipioData) return;
             panelMunicipioNombre.textContent = municipioData.nombre;
@@ -1039,21 +1053,15 @@
             isPanelOpen = true;
         }
 
-        // ============ CLOSE SIDE PANEL ============
         function closeSidePanel() {
             sidePanel.classList.remove('open');
             isPanelOpen = false;
             resetAllLayers();
-            // Reset zoom to show all Carabobo
             if (geoJsonLayer) {
                 try {
                     const allBounds = geoJsonLayer.getBounds();
                     if (allBounds.isValid()) {
-                        map.fitBounds(allBounds, {
-                            padding: [40, 40],
-                            maxZoom: 11,
-                            duration: 0.6,
-                        });
+                        map.fitBounds(allBounds, { padding: [40, 40], maxZoom: 11, duration: 0.6 });
                     }
                 } catch (e) {
                     map.setView(caraboboCenter, defaultZoom, { duration: 0.6 });
@@ -1068,17 +1076,12 @@
             closeSidePanel();
         });
 
-        // Close panel with Escape key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && isPanelOpen) {
-                closeSidePanel();
-            }
+            if (e.key === 'Escape' && isPanelOpen) closeSidePanel();
         });
 
-        // ============ HANDLE MUNICIPALITY CLICK ============
         function handleMunicipioClick(layer, municipioData, featureBounds) {
             if (selectedLayer === layer) {
-                // Deselect if clicking the same municipality
                 closeSidePanel();
                 return;
             }
@@ -1087,10 +1090,9 @@
             dimAllExcept(layer);
             openSidePanel(municipioData);
 
-            // Zoom to feature bounds with padding for side panel
             if (featureBounds && featureBounds.isValid()) {
                 const isMobile = window.innerWidth <= 768;
-                const paddingRight = isMobile ? 30 : 420; // account for side panel on desktop
+                const paddingRight = isMobile ? 30 : 420;
                 const paddingTop = isMobile ? 180 : 50;
                 map.fitBounds(featureBounds, {
                     paddingTopLeft: [30, paddingTop],
@@ -1101,41 +1103,23 @@
             }
         }
 
-        // ============ GEOJSON ON EACH FEATURE ============
+        // ============ GEOJSON ON EACH FEATURE (IMPROVED) ============
         function onEachFeature(feature, layer) {
-            // Store reference
             allPolygonLayers.push(layer);
 
-            // Attempt to extract municipality name from GeoJSON properties
-            const props = feature.properties || {};
-            const possibleNames = [
-                props.NAME_2,
-                props.NOM_MUN,
-                props.MUNICIPIO,
-                props.admin2Name,
-                props.name,
-                props.NOMBRE,
-                props.municipio,
-                props.MUN,
-            ].filter(Boolean);
+            // Use the new robust matching against all property values
+            const municipioData = findMunicipioDataFromFeature(feature);
+            const geoJsonName = municipioData ? municipioData.nombre : (feature.properties?.NAME_2 || feature.properties?.NOM_MUN || 'Desconocido');
 
-            const geoJsonName = possibleNames[0] || 'Desconocido';
-            const municipioData = findMunicipioData(geoJsonName);
-
-            // Store data on the layer for later use
             layer._municipioData = municipioData;
             layer._geoJsonName = geoJsonName;
 
-            // ---- Hover effects ----
             layer.on('mouseover', function(e) {
                 const lyr = e.target;
-                if (lyr === selectedLayer) return; // don't override selected style
+                if (lyr === selectedLayer) return;
                 lyr.setStyle(hoverStyle);
-                if (lyr._path) {
-                    lyr._path.classList.add('glow-hover');
-                }
+                if (lyr._path) lyr._path.classList.add('glow-hover');
                 lyr.bringToFront();
-                // Small tooltip on hover
                 const displayName = municipioData ? municipioData.nombre : geoJsonName;
                 lyr.bindTooltip(displayName, {
                     sticky: true,
@@ -1150,13 +1134,10 @@
                 const lyr = e.target;
                 if (lyr === selectedLayer) return;
                 lyr.setStyle(defaultStyle);
-                if (lyr._path) {
-                    lyr._path.classList.remove('glow-hover');
-                }
+                if (lyr._path) lyr._path.classList.remove('glow-hover');
                 lyr.unbindTooltip();
             });
 
-            // ---- Click handler ----
             layer.on('click', function(e) {
                 L.DomEvent.stopPropagation(e);
                 const lyr = e.target;
@@ -1165,14 +1146,15 @@
                 if (data) {
                     handleMunicipioClick(lyr, data, bounds);
                 } else {
-                    // Fallback: show basic info if no match found
+                    // Fallback with the name we could extract
                     const fallbackData = {
-                        nombre: lyr._geoJsonName || 'Municipio',
+                        nombre: geoJsonName || 'Municipio sin datos',
                         capital: 'No disponible',
                         mesas: 0,
                         electores: 0,
                         bandera: '',
                     };
+                    console.warn('Usando datos de respaldo para:', geoJsonName);
                     handleMunicipioClick(lyr, fallbackData, bounds);
                 }
             });
@@ -1181,21 +1163,9 @@
         // ============ FILTER GEOJSON FOR CARABOBO ============
         function filterCarabobo(feature) {
             const props = feature.properties || {};
-            const stateFields = [
-                props.NAME_1,
-                props.NOM_EDO,
-                props.ESTADO,
-                props.admin1Name,
-                props.state,
-                props.STATE,
-                props.estado,
-            ];
-            for (const val of stateFields) {
-                if (val && normalize(val).includes('carabobo')) {
-                    return true;
-                }
-            }
-            return false;
+            // Check all property values for the word "carabobo"
+            const allValues = Object.values(props).map(v => String(v));
+            return allValues.some(val => normalize(val).includes('carabobo'));
         }
 
         // ============ LOAD GEOJSON ============
@@ -1210,21 +1180,17 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Filter for Carabobo only
                     const caraboboFeatures = data.features ? data.features.filter(filterCarabobo) : [];
                     if (caraboboFeatures.length === 0) {
-                        console.warn('No se encontraron municipios de Carabobo en el GeoJSON. Intentando cargar todos los features...');
-                        // Fallback: try loading all features that might be in Carabobo area
+                        console.warn('No se encontraron municipios de Carabobo. Intentando con todos los features...');
                         const fallbackFeatures = data.features ? data.features.filter(f => {
-                            const props = f.properties || {};
-                            const allVals = Object.values(props).map(v => String(v));
-                            return allVals.some(v => normalize(v).includes('carabobo'));
+                            const vals = Object.values(f.properties || {}).map(v => String(v));
+                            return vals.some(v => normalize(v).includes('carabobo'));
                         }) : [];
                         if (fallbackFeatures.length > 0) {
                             createGeoJsonLayer({ ...data, features: fallbackFeatures });
                         } else {
-                            throw new Error(
-                                'No se pudo filtrar Carabobo. Verifica la estructura del GeoJSON.');
+                            throw new Error('No se pudo filtrar Carabobo.');
                         }
                     } else {
                         createGeoJsonLayer({ ...data, features: caraboboFeatures });
@@ -1233,14 +1199,10 @@
                 .catch(err => {
                     console.error('Error cargando GeoJSON:', err);
                     loadingOverlay.classList.add('hidden');
-                    // Show error on map
-                    const errorPopup = L.popup()
+                    L.popup()
                         .setLatLng(caraboboCenter)
-                        .setContent(
-                            '<strong>⚠️ Error al cargar datos</strong><br><small>Verifica la conexión e intenta recargar.</small>'
-                            )
+                        .setContent('<strong>⚠️ Error al cargar datos</strong><br><small>Verifica la conexión e intenta recargar.</small>')
                         .openOn(map);
-                    // Retry hint
                     statMesas.textContent = 'Error';
                     statElectores.textContent = 'Recargar';
                 });
@@ -1252,47 +1214,28 @@
                 onEachFeature: onEachFeature,
             }).addTo(map);
 
-            // Fit map to show all Carabobo municipalities
             const bounds = geoJsonLayer.getBounds();
             if (bounds.isValid()) {
-                map.fitBounds(bounds, {
-                    padding: [35, 35],
-                    maxZoom: 11,
-                    duration: 0.5,
-                });
+                map.fitBounds(bounds, { padding: [35, 35], maxZoom: 11, duration: 0.5 });
             }
 
-            // Update stats
             const totalMesas = Object.values(municipiosData).reduce((sum, d) => sum + d.mesas, 0);
             const totalElectores = Object.values(municipiosData).reduce((sum, d) => sum + d.electores, 0);
             statMesas.textContent = formatNumber(totalMesas);
             statElectores.textContent = formatNumber(totalElectores);
 
-            // Hide loading
             loadingOverlay.classList.add('hidden');
-
-            console.log(
-                `✅ Cargados ${geoJsonData.features.length} municipios de Carabobo | ${allPolygonLayers.length} capas renderizadas`
-                );
+            console.log(`✅ Cargados ${geoJsonData.features.length} municipios de Carabobo.`);
         }
 
-        // ============ CLICK ON MAP BACKGROUND TO DESELECT ============
         map.on('click', function(e) {
-            // If panel is open and user clicks map background, close panel
-            if (isPanelOpen && selectedLayer) {
-                // Check if the click was on a feature (handled by feature click with stopPropagation)
-                // This only fires for background clicks
-                closeSidePanel();
-            }
+            if (isPanelOpen && selectedLayer) closeSidePanel();
         });
 
-        // ============ RESPONSIVE: ADJUST ON RESIZE ============
-        let resizeTimeout;
         window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
+            clearTimeout(window._resizeTimer);
+            window._resizeTimer = setTimeout(() => {
                 map.invalidateSize();
-                // If panel is open on mobile, adjust padding
                 if (isPanelOpen && selectedLayer && selectedLayer.getBounds) {
                     const bounds = selectedLayer.getBounds();
                     if (bounds.isValid()) {
@@ -1310,11 +1253,8 @@
             }, 250);
         });
 
-        // ============ INITIAL LOAD ============
         loadGeoJSON();
 
-        // ============ EXPORT FOR DEBUG ============
-        // Expose key references to window for console debugging
         window._caraboboMap = {
             map,
             geoJsonLayer,
@@ -1324,14 +1264,11 @@
             resetAllLayers,
             closeSidePanel,
             openSidePanel,
-            findMunicipioData,
+            findMunicipioDataFromFeature,
         };
 
-        console.log('🗺️  Mapa Electoral de Carabobo inicializado.');
-        console.log('   Concertación Carabobo — Dashboard Interactivo');
-        console.log('   Comandos disponibles: window._caraboboMap');
-        console.log('   🖱️  Haz clic en un municipio para ver detalles.');
-        console.log('   🛰️  Usa los botones para alternar entre mapa y satélite.');
+        console.log('🗺️ Mapa Electoral de Carabobo inicializado (versión mejorada).');
+        console.log('   🧠 Ahora busca el nombre del municipio en cualquier campo del GeoJSON.');
     })();
 </script>
 </body>
