@@ -1,1275 +1,591 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Electoral Interactivo | Concertación Carabobo</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mapa Electoral · Concertación Carabobo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;500;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ─── RESET & TOKENS ─────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blu:  #0a2463; --blm:  #1a3a8f; --bll: #2255c8;
+  --grn:  #1b8a4c; --grl:  #27c06a;
+  --wht:  #f4f7ff; --gls:  rgba(255,255,255,.07);
+  --glb:  rgba(255,255,255,.14);
+  --hh:   64px;    --pw:   348px;   --rr:  14px;
+  --fh:   'Barlow Condensed',sans-serif;
+  --fb:   'DM Sans',sans-serif;
+}
+html,body{height:100%;background:#04101e;color:var(--wht);font-family:var(--fb);overflow:hidden}
 
-    <!-- Leaflet CSS CDN -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin="" />
+/* ─── LOADER ─────────────────────────────────────────────────── */
+#loader{
+  position:fixed;inset:0;background:#04101e;z-index:4000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  transition:opacity .6s
+}
+#loader.done{opacity:0;pointer-events:none}
+#loader img{height:72px;filter:drop-shadow(0 0 20px rgba(39,192,106,.6))}
+.spin{width:44px;height:44px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--grl);border-radius:50%;animation:spin .85s linear infinite}
+#loader-msg{font-family:var(--fh);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.38)}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    <style>
-        :root {
-            --blue-dark: #0b1e33;
-            --blue-mid: #132d4a;
-            --blue-institutional: #1a3f63;
-            --green-institutional: #1a8a4a;
-            --green-accent: #25b85f;
-            --green-light: #2ecc71;
-            --gold-accent: #d4a843;
-            --gold-light: #f0cc6e;
-            --white: #ffffff;
-            --off-white: #f4f6f9;
-            --gray-light: #e8ecf1;
-            --gray-mid: #b0b8c1;
-            --gray-dark: #5a6470;
-            --shadow-sm: 0 2px 8px rgba(11, 30, 51, 0.08);
-            --shadow-md: 0 6px 24px rgba(11, 30, 51, 0.12);
-            --shadow-lg: 0 12px 40px rgba(11, 30, 51, 0.18);
-            --shadow-glow: 0 0 28px rgba(37, 184, 95, 0.35);
-            --radius-sm: 8px;
-            --radius-md: 14px;
-            --radius-lg: 20px;
-            --radius-xl: 24px;
-            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-smooth: 0.35s cubic-bezier(0.4, 0, 0.15, 1);
-            --transition-bounce: 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-            --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            --panel-width-desktop: 400px;
-            --panel-height-mobile: 48vh;
-        }
+/* ─── HEADER ─────────────────────────────────────────────────── */
+#hdr{
+  position:fixed;top:0;left:0;right:0;height:var(--hh);z-index:1200;
+  background:linear-gradient(90deg,#061730 0%,#0a2052 55%,#061a0f 100%);
+  border-bottom:1px solid var(--glb);
+  display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  box-shadow:0 2px 28px rgba(0,0,0,.7)
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{height:44px;filter:drop-shadow(0 0 10px rgba(39,192,106,.45))}
+.brand-txt{line-height:1.1}
+.brand-txt b{display:block;font-family:var(--fh);font-weight:900;font-size:1.3rem;letter-spacing:.07em;text-transform:uppercase}
+.brand-txt small{font-family:var(--fh);font-weight:300;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--grl);margin-top:2px}
+.hdr-stat{text-align:right}
+.hdr-stat .v{font-family:var(--fh);font-weight:700;font-size:1.45rem;color:var(--grl);letter-spacing:.04em}
+.hdr-stat .l{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;opacity:.5;display:block;margin-top:1px}
 
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+/* ─── LAYOUT ─────────────────────────────────────────────────── */
+#app{height:100%;padding-top:var(--hh)}
+#map{height:100%;width:100%;background:#04101e}
+.leaflet-control-attribution{display:none!important}
 
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: var(--font-sans);
-            background: var(--blue-dark);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            -webkit-tap-highlight-color: transparent;
-        }
+/* ─── LAYER SWITCHER ─────────────────────────────────────────── */
+#lsw{
+  position:fixed;bottom:22px;right:12px;z-index:1100;
+  display:flex;flex-direction:column;gap:5px
+}
+.lb{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(4,14,35,.92);border:1px solid var(--glb);
+  border-radius:9px;padding:7px 13px;cursor:pointer;
+  font-family:var(--fh);font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;
+  color:rgba(244,247,255,.5);transition:all .2s;backdrop-filter:blur(12px);white-space:nowrap
+}
+.lb:hover{background:rgba(20,55,150,.75);color:var(--wht)}
+.lb.on{border-color:var(--grl);color:var(--grl);background:rgba(27,138,76,.16)}
+.lb .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
 
-        /* ========== HEADER ========== */
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-mid) 60%, #0f2840 100%);
-            border-bottom: 2px solid rgba(255, 255, 255, 0.08);
-            box-shadow: var(--shadow-lg);
-            height: 58px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
+/* ─── SIDE PANEL ─────────────────────────────────────────────── */
+#panel{
+  position:fixed;top:var(--hh);right:calc(-1 * var(--pw) - 24px);
+  width:var(--pw);height:calc(100% - var(--hh));
+  background:linear-gradient(168deg,rgba(9,30,82,.96) 0%,rgba(3,12,36,.99) 100%);
+  border-left:1px solid var(--glb);backdrop-filter:blur(22px);z-index:1100;
+  transition:right .44s cubic-bezier(.22,1,.36,1);
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:-8px 0 52px rgba(0,0,0,.6)
+}
+#panel.open{right:0}
 
-        .header-logo {
-            height: 38px;
-            width: auto;
-            object-fit: contain;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-            flex-shrink: 0;
-        }
+/* cerrar */
+#pcls{
+  position:absolute;top:11px;right:11px;width:30px;height:30px;
+  border:1px solid var(--glb);border-radius:50%;background:var(--gls);
+  color:var(--wht);font-size:.95rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s,transform .25s;z-index:5
+}
+#pcls:hover{background:rgba(255,255,255,.14);transform:rotate(90deg)}
 
-        .header-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--white);
-            letter-spacing: 0.01em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .header-title span {
-            color: var(--green-light);
-            font-weight: 800;
-        }
+/* hero */
+#phero{
+  flex-shrink:0;padding:24px 20px 16px;border-bottom:1px solid var(--glb);
+  background:linear-gradient(140deg,rgba(27,138,76,.1) 0%,transparent 55%)
+}
+#pflag{width:100%;height:104px;object-fit:cover;border-radius:10px;
+  margin-bottom:14px;box-shadow:0 4px 22px rgba(0,0,0,.6);border:1px solid var(--glb)}
+#pname{font-family:var(--fh);font-weight:900;font-size:1.9rem;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+#pcap{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--grl);margin-top:4px;opacity:.85}
 
-        .header-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 5px 12px;
-            font-size: 0.75rem;
-            color: var(--off-white);
-            font-weight: 500;
-            margin-left: auto;
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-        .header-badge .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--green-light);
-            box-shadow: 0 0 8px var(--green-accent);
-            animation: pulse-dot 2s infinite;
-        }
-        @keyframes pulse-dot {
-            0%,
-            100% {
-                box-shadow: 0 0 6px var(--green-accent);
-            }
-            50% {
-                box-shadow: 0 0 16px var(--green-light), 0 0 28px rgba(46, 204, 113, 0.5);
-            }
-        }
+/* stats */
+#pstats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px 16px 0;flex-shrink:0}
+.sc{
+  background:var(--gls);border:1px solid var(--glb);border-radius:var(--rr);
+  padding:13px 11px;display:flex;flex-direction:column;gap:4px;
+  position:relative;overflow:hidden;transition:background .2s
+}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--grn),var(--bll));opacity:0;transition:opacity .3s}
+.sc:hover{background:rgba(255,255,255,.1)}
+.sc:hover::before{opacity:1}
+.sc .ico{font-size:1.25rem}
+.sc .sv{font-family:var(--fh);font-weight:700;font-size:1.45rem;letter-spacing:.02em}
+.sc .sl{font-size:.6rem;letter-spacing:.17em;text-transform:uppercase;color:rgba(244,247,255,.4)}
 
-        /* ========== MAP CONTAINER ========== */
-        .map-container {
-            position: fixed;
-            top: 58px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1;
-            background: #e8ecf1;
-        }
-        #map {
-            width: 100%;
-            height: 100%;
-            transition: filter var(--transition-smooth);
-        }
-        #map.dimmed-bg {
-            filter: brightness(0.65);
-        }
+/* barra peso */
+#pbar-wrap{flex-shrink:0;padding:12px 16px 0}
+#pbar-wrap label{font-size:.6rem;letter-spacing:.17em;text-transform:uppercase;color:rgba(244,247,255,.38);display:block;margin-bottom:5px}
+#pbar-track{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+#pbar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--grn),var(--grl));transition:width .65s ease}
 
-        /* ========== FLOATING STATS OVERLAY ========== */
-        .stats-overlay {
-            position: absolute;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 500;
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
-            pointer-events: none;
-        }
-        .stat-chip {
-            pointer-events: auto;
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: var(--radius-lg);
-            padding: 10px 16px;
-            box-shadow: var(--shadow-md);
-            text-align: center;
-            min-width: 90px;
-            transition: all var(--transition-fast);
-            cursor: default;
-        }
-        .stat-chip:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--green-accent);
-        }
-        .stat-chip .stat-value {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: var(--blue-dark);
-            letter-spacing: -0.02em;
-            line-height: 1.1;
-        }
-        .stat-chip .stat-label {
-            font-size: 0.68rem;
-            font-weight: 500;
-            color: var(--gray-dark);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
+/* parroquias */
+#ppar-wrap{flex:1;overflow-y:auto;padding:12px 16px;scrollbar-width:thin;scrollbar-color:var(--glb) transparent}
+#ppar-wrap::-webkit-scrollbar{width:4px}
+#ppar-wrap::-webkit-scrollbar-thumb{background:var(--glb);border-radius:2px}
+#ppar-title{font-family:var(--fh);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,247,255,.38);margin-bottom:8px}
+#ppar-list{display:flex;flex-direction:column;gap:4px}
+.par-item{
+  display:flex;align-items:center;gap:9px;
+  background:var(--gls);border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;padding:8px 11px;
+  font-size:.8rem;font-weight:500;
+  transition:background .18s,border-color .18s
+}
+.par-item:hover{background:rgba(39,192,106,.08);border-color:rgba(39,192,106,.25)}
+.par-item .pi{width:7px;height:7px;border-radius:50%;background:var(--grl);flex-shrink:0}
 
-        /* ========== SIDE PANEL ========== */
-        .side-panel {
-            position: fixed;
-            top: 58px;
-            right: 0;
-            bottom: 0;
-            width: var(--panel-width-desktop);
-            max-width: 92vw;
-            z-index: 900;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-left: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: -8px 0 40px rgba(11, 30, 51, 0.2);
-            transform: translateX(105%);
-            transition: transform var(--transition-bounce);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 0;
-            border-radius: var(--radius-xl) 0 0 var(--radius-xl);
-        }
-        .side-panel.open {
-            transform: translateX(0);
-        }
+/* footer */
+#pftr{
+  flex-shrink:0;padding:12px 16px;border-top:1px solid var(--glb);
+  display:flex;align-items:center;gap:10px
+}
+#pftr img{height:34px;filter:drop-shadow(0 0 6px rgba(39,192,106,.35))}
+#pftr span{font-family:var(--fh);font-size:.75rem;letter-spacing:.13em;text-transform:uppercase;opacity:.45}
 
-        .panel-header {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            background: linear-gradient(135deg, var(--blue-institutional), var(--blue-mid));
-            border-radius: var(--radius-xl) 0 0 0;
-            color: var(--white);
-            gap: 10px;
-        }
-        .panel-header h2 {
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.01em;
-            line-height: 1.2;
-            margin: 0;
-        }
-        .panel-close-btn {
-            flex-shrink: 0;
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--white);
-            cursor: pointer;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-fast);
-            line-height: 1;
-        }
-        .panel-close-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-            border-color: var(--white);
-            transform: rotate(90deg);
-            box-shadow: 0 0 14px rgba(255, 255, 255, 0.3);
-        }
+/* ─── TOOLTIP ────────────────────────────────────────────────── */
+.mtt{
+  background:rgba(3,12,36,.95)!important;border:1px solid rgba(39,192,106,.45)!important;
+  border-radius:8px!important;color:var(--wht)!important;
+  font-family:var(--fh)!important;font-weight:700!important;
+  font-size:.9rem!important;letter-spacing:.08em!important;text-transform:uppercase!important;
+  padding:5px 11px!important;white-space:nowrap!important;
+  box-shadow:0 4px 18px rgba(0,0,0,.55),0 0 14px rgba(39,192,106,.1)!important;
+  backdrop-filter:blur(8px)!important
+}
+.leaflet-tooltip-top.mtt::before{border-top-color:rgba(39,192,106,.4)!important}
+.mtt-par{
+  background:rgba(3,12,36,.88)!important;border:1px solid rgba(90,130,255,.35)!important;
+  border-radius:7px!important;color:rgba(200,220,255,.85)!important;
+  font-family:var(--fb)!important;font-size:.72rem!important;font-weight:500!important;
+  padding:4px 10px!important;white-space:nowrap!important;
+  backdrop-filter:blur(6px)!important
+}
 
-        .panel-body {
-            padding: 18px 20px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            flex: 1;
-        }
+/* ─── HINT ───────────────────────────────────────────────────── */
+#hint{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:rgba(3,12,36,.9);border:1px solid var(--glb);
+  border-radius:30px;padding:7px 20px;
+  font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;
+  opacity:.72;z-index:900;pointer-events:none;transition:opacity .6s;
+  backdrop-filter:blur(8px)
+}
+#hint.gone{opacity:0}
 
-        .panel-flag-wrapper {
-            width: 100%;
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            box-shadow: var(--shadow-md);
-            aspect-ratio: 16 / 10;
-            background: var(--gray-light);
-            position: relative;
-            border: 3px solid rgba(255, 255, 255, 0.7);
-        }
-        .panel-flag-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform var(--transition-smooth);
-        }
-        .panel-flag-wrapper:hover img {
-            transform: scale(1.04);
-        }
-
-        .info-card {
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(200, 210, 220, 0.5);
-            border-radius: var(--radius-md);
-            padding: 14px 16px;
-            box-shadow: var(--shadow-sm);
-            transition: all var(--transition-fast);
-        }
-        .info-card:hover {
-            box-shadow: var(--shadow-md);
-            border-color: var(--green-accent);
-        }
-        .info-card .info-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--gray-dark);
-            margin-bottom: 4px;
-        }
-        .info-card .info-value {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--blue-dark);
-            letter-spacing: -0.01em;
-        }
-        .info-card .info-value.large {
-            font-size: 1.5rem;
-            color: var(--blue-institutional);
-        }
-
-        .info-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .panel-logo-footer {
-            margin-top: auto;
-            text-align: center;
-            padding: 10px 0 0;
-        }
-        .panel-logo-footer img {
-            height: 40px;
-            width: auto;
-            opacity: 0.8;
-            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.15));
-            transition: opacity var(--transition-fast);
-        }
-        .panel-logo-footer img:hover {
-            opacity: 1;
-        }
-
-        .panel-future-section {
-            border-top: 1px dashed var(--gray-mid);
-            padding-top: 12px;
-            margin-top: 4px;
-        }
-        .panel-future-section .future-title {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--gray-mid);
-            margin-bottom: 8px;
-            text-align: center;
-        }
-        .future-placeholder {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .future-tag {
-            font-size: 0.68rem;
-            padding: 5px 10px;
-            border-radius: 14px;
-            background: rgba(180, 190, 200, 0.25);
-            color: var(--gray-dark);
-            border: 1px dashed var(--gray-mid);
-            cursor: default;
-            transition: all var(--transition-fast);
-        }
-        .future-tag:hover {
-            background: rgba(37, 184, 95, 0.1);
-            border-color: var(--green-accent);
-            color: var(--green-institutional);
-        }
-
-        /* ========== MAP OVERLAY CONTROLS ========== */
-        .map-controls-custom {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            z-index: 600;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .layer-toggle-btn {
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: var(--radius-sm);
-            padding: 10px 14px;
-            cursor: pointer;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--blue-dark);
-            box-shadow: var(--shadow-md);
-            transition: all var(--transition-fast);
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            white-space: nowrap;
-            letter-spacing: 0.02em;
-        }
-        .layer-toggle-btn:hover {
-            background: var(--white);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--green-accent);
-            transform: translateY(-1px);
-        }
-        .layer-toggle-btn.active {
-            background: var(--blue-institutional);
-            color: var(--white);
-            border-color: var(--blue-institutional);
-            box-shadow: var(--shadow-glow);
-        }
-        .layer-toggle-btn .icon {
-            font-size: 1rem;
-        }
-
-        /* ========== LEAFLET OVERRIDES ========== */
-        .leaflet-popup-content-wrapper {
-            background: rgba(255, 255, 255, 0.82) !important;
-            backdrop-filter: blur(18px) !important;
-            -webkit-backdrop-filter: blur(18px) !important;
-            border-radius: var(--radius-md) !important;
-            box-shadow: var(--shadow-lg) !important;
-            border: 1px solid rgba(255, 255, 255, 0.5) !important;
-            font-family: var(--font-sans) !important;
-        }
-        .leaflet-popup-content {
-            margin: 10px 14px !important;
-            font-size: 0.85rem !important;
-            color: var(--blue-dark) !important;
-        }
-        .leaflet-popup-tip {
-            background: rgba(255, 255, 255, 0.82) !important;
-            backdrop-filter: blur(18px) !important;
-            -webkit-backdrop-filter: blur(18px) !important;
-        }
-        .leaflet-control-zoom a {
-            border-radius: var(--radius-sm) !important;
-            box-shadow: var(--shadow-md) !important;
-            transition: all var(--transition-fast) !important;
-        }
-        .leaflet-control-zoom a:hover {
-            background: var(--off-white) !important;
-            box-shadow: var(--shadow-lg) !important;
-        }
-
-        /* Glow animation for hovered municipality */
-        .leaflet-interactive.glow-hover {
-            filter: drop-shadow(0 0 10px rgba(240, 204, 110, 0.7)) drop-shadow(0 0 22px rgba(37, 184, 95, 0.5));
-            transition: filter 0.25s ease-out;
-        }
-
-        /* ========== LOADING SPINNER ========== */
-        .loading-overlay {
-            position: fixed;
-            top: 58px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 2000;
-            background: rgba(11, 30, 51, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: all;
-            transition: opacity 0.4s ease;
-        }
-        .loading-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.25);
-            border-top-color: var(--green-light);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            box-shadow: 0 0 22px rgba(46, 204, 113, 0.5);
-        }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* ========== RESPONSIVE ========== */
-        @media (max-width: 768px) {
-            .header {
-                padding: 8px 12px;
-                height: 50px;
-                gap: 8px;
-            }
-            .header-logo {
-                height: 28px;
-            }
-            .header-title {
-                font-size: 0.85rem;
-            }
-            .header-badge {
-                font-size: 0.68rem;
-                padding: 4px 10px;
-                gap: 4px;
-            }
-            .map-container {
-                top: 50px;
-            }
-            .side-panel {
-                top: auto;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                width: 100%;
-                max-width: 100%;
-                height: var(--panel-height-mobile);
-                max-height: 55vh;
-                transform: translateY(105%);
-                border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-                border-left: none;
-                border-top: 1px solid rgba(255, 255, 255, 0.4);
-                box-shadow: 0 -8px 40px rgba(11, 30, 51, 0.25);
-            }
-            .side-panel.open {
-                transform: translateY(0);
-            }
-            .panel-header {
-                border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-                padding: 12px 16px;
-            }
-            .panel-header h2 {
-                font-size: 1rem;
-            }
-            .panel-body {
-                padding: 12px 14px 18px;
-                gap: 10px;
-            }
-            .info-row {
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-            }
-            .info-card .info-value {
-                font-size: 0.95rem;
-            }
-            .info-card .info-value.large {
-                font-size: 1.2rem;
-            }
-            .stats-overlay {
-                bottom: 12px;
-                gap: 6px;
-            }
-            .stat-chip {
-                padding: 7px 10px;
-                min-width: 65px;
-                border-radius: var(--radius-md);
-            }
-            .stat-chip .stat-value {
-                font-size: 1rem;
-            }
-            .stat-chip .stat-label {
-                font-size: 0.6rem;
-            }
-            .map-controls-custom {
-                top: 10px;
-                right: 10px;
-                gap: 5px;
-            }
-            .layer-toggle-btn {
-                padding: 7px 10px;
-                font-size: 0.7rem;
-                border-radius: 6px;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .header-title {
-                font-size: 0.72rem;
-            }
-            .header-badge {
-                display: none;
-            }
-            .side-panel {
-                height: 52vh;
-                max-height: 60vh;
-            }
-            .info-row {
-                grid-template-columns: 1fr;
-            }
-            .stats-overlay {
-                bottom: 6px;
-                gap: 4px;
-            }
-            .stat-chip {
-                padding: 5px 8px;
-                min-width: 55px;
-            }
-            .stat-chip .stat-value {
-                font-size: 0.85rem;
-            }
-        }
-    </style>
+/* ─── RESPONSIVE ─────────────────────────────────────────────── */
+@media(max-width:640px){
+  :root{--pw:100vw}
+  #panel{top:auto;bottom:calc(-68vh - 20px);right:0;height:68vh;
+    border-left:none;border-top:1px solid var(--glb);
+    border-radius:20px 20px 0 0;
+    transition:bottom .44s cubic-bezier(.22,1,.36,1)}
+  #panel.open{bottom:0}
+  .brand-txt b{font-size:1.05rem}
+  #lsw{bottom:10px;right:6px}
+}
+</style>
 </head>
 <body>
 
-    <!-- ==================== HEADER ==================== -->
-    <header class="header">
-        <img
-        class="header-logo"
-        src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true"
-        alt="Logo Concertación Carabobo"
-        loading="eager"
-        onerror="this.style.display='none';"
-        >
-        <span class="header-title">Mapa Electoral <span>Carabobo</span></span>
-        <div class="header-badge">
-            <span class="dot"></span> 14 Municipios
-        </div>
-    </header>
+<!-- ── LOADER ───────────────────────────────────────────────── -->
+<div id="loader">
+  <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="logo"/>
+  <div class="spin"></div>
+  <p id="loader-msg">Cargando capas electorales…</p>
+</div>
 
-    <!-- ==================== MAP CONTAINER ==================== -->
-    <div class="map-container">
-        <div id="map"></div>
-
-        <!-- Floating stats overlay -->
-        <div class="stats-overlay" id="statsOverlay">
-            <div class="stat-chip">
-                <div class="stat-value" id="statMesas">2.059</div>
-                <div class="stat-label">Mesas</div>
-            </div>
-            <div class="stat-chip">
-                <div class="stat-value" id="statElectores">1.663.942</div>
-                <div class="stat-label">Electores</div>
-            </div>
-        </div>
-
-        <!-- Custom layer toggle -->
-        <div class="map-controls-custom">
-            <button class="layer-toggle-btn active" id="btnStreet" title="Vista de mapa callejero">
-                <span class="icon">🗺️</span> Mapa
-            </button>
-            <button class="layer-toggle-btn" id="btnSatellite" title="Vista satelital">
-                <span class="icon">🛰️</span> Satélite
-            </button>
-        </div>
+<!-- ── HEADER ───────────────────────────────────────────────── -->
+<header id="hdr">
+  <div class="brand">
+    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo"/>
+    <div class="brand-txt">
+      <b>Concertación Carabobo</b>
+      <small>Mapa Electoral Estratégico 2025</small>
     </div>
+  </div>
+  <div class="hdr-stat">
+    <span class="v">1.663.942</span>
+    <span class="l">Electores · Estado Carabobo</span>
+  </div>
+</header>
 
-    <!-- ==================== SIDE PANEL ==================== -->
-    <aside class="side-panel" id="sidePanel" aria-label="Panel de información municipal">
-        <div class="panel-header">
-            <h2 id="panelMunicipioNombre">Selecciona un municipio</h2>
-            <button class="panel-close-btn" id="panelCloseBtn" aria-label="Cerrar panel" title="Cerrar">✕</button>
-        </div>
-        <div class="panel-body">
-            <!-- Bandera -->
-            <div class="panel-flag-wrapper">
-                <img
-                id="panelBandera"
-                src=""
-                alt="Bandera del municipio"
-                loading="lazy"
-                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22320%22 height=%22200%22><rect fill=%22%23e8ecf1%22 width=%22320%22 height=%22200%22/><text x=%22160%22 y=%22110%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22 fill=%22%23b0b8c1%22>Bandera no disponible</text></svg>';"
-                >
-            </div>
-            <!-- Capital -->
-            <div class="info-card">
-                <div class="info-label">📍 Capital</div>
-                <div class="info-value" id="panelCapital">—</div>
-            </div>
-            <!-- Stats row -->
-            <div class="info-row">
-                <div class="info-card">
-                    <div class="info-label">🗳️ Total Mesas</div>
-                    <div class="info-value large" id="panelMesas">—</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-label">👥 Total Electores</div>
-                    <div class="info-value large" id="panelElectores">—</div>
-                </div>
-            </div>
-            <!-- Future expansion section -->
-            <div class="panel-future-section">
-                <div class="future-title">📋 Información Expandible</div>
-                <div class="future-placeholder">
-                    <span class="future-tag">👤 Líderes</span>
-                    <span class="future-tag">📝 Notas de campo</span>
-                    <span class="future-tag">📊 Histórico</span>
-                    <span class="future-tag">🎯 Metas</span>
-                </div>
-            </div>
-            <!-- Footer logo -->
-            <div class="panel-logo-footer">
-                <img
-                src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true"
-                alt="Concertación Carabobo"
-                loading="lazy"
-                >
-            </div>
-        </div>
-    </aside>
+<!-- ── MAP ──────────────────────────────────────────────────── -->
+<div id="app"><div id="map"></div></div>
 
-    <!-- ==================== LOADING OVERLAY ==================== -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-    </div>
+<!-- ── LAYER SWITCHER ───────────────────────────────────────── -->
+<div id="lsw">
+  <button class="lb on" id="lb-dark" onclick="setTile('dark')"><span class="dot"></span>Oscuro</button>
+  <button class="lb"    id="lb-osm"  onclick="setTile('osm')"><span class="dot"></span>Mapa</button>
+  <button class="lb"    id="lb-sat"  onclick="setTile('sat')"><span class="dot"></span>Satélite</button>
+  <button class="lb"    id="lb-topo" onclick="setTile('topo')"><span class="dot"></span>Topográfico</button>
+</div>
 
-    <!-- Leaflet JS CDN -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin="">
-</script>
+<!-- ── SIDE PANEL ───────────────────────────────────────────── -->
+<div id="panel">
+  <button id="pcls" title="Cerrar">✕</button>
 
+  <div id="phero">
+    <img id="pflag" src="" alt="Bandera"/>
+    <div id="pname">—</div>
+    <div id="pcap">Capital: —</div>
+  </div>
+
+  <div id="pstats">
+    <div class="sc"><span class="ico">🗳️</span><span class="sv" id="sv-m">—</span><span class="sl">Mesas</span></div>
+    <div class="sc"><span class="ico">👥</span><span class="sv" id="sv-e">—</span><span class="sl">Electores</span></div>
+    <div class="sc"><span class="ico">📊</span><span class="sv" id="sv-p">—</span><span class="sl">% del Estado</span></div>
+    <div class="sc"><span class="ico">🏛️</span><span class="sv" id="sv-r">—</span><span class="sl">Elec/Mesa</span></div>
+  </div>
+
+  <div id="pbar-wrap">
+    <label>Peso electoral en Carabobo</label>
+    <div id="pbar-track"><div id="pbar-fill" style="width:0%"></div></div>
+  </div>
+
+  <div id="ppar-wrap">
+    <div id="ppar-title">Parroquias del municipio</div>
+    <div id="ppar-list"></div>
+  </div>
+
+  <div id="pftr">
+    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo"/>
+    <span>Concertación Carabobo · 2025</span>
+  </div>
+</div>
+
+<div id="hint">Selecciona un municipio para ver su información</div>
+
+<!-- ── LEAFLET ───────────────────────────────────────────────── -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    (function() {
-        // ============ DOM REFERENCES ============
-        const mapEl = document.getElementById('map');
-        const sidePanel = document.getElementById('sidePanel');
-        const panelCloseBtn = document.getElementById('panelCloseBtn');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const btnStreet = document.getElementById('btnStreet');
-        const btnSatellite = document.getElementById('btnSatellite');
-        const panelMunicipioNombre = document.getElementById('panelMunicipioNombre');
-        const panelCapital = document.getElementById('panelCapital');
-        const panelMesas = document.getElementById('panelMesas');
-        const panelElectores = document.getElementById('panelElectores');
-        const panelBandera = document.getElementById('panelBandera');
-        const statMesas = document.getElementById('statMesas');
-        const statElectores = document.getElementById('statElectores');
+/* ══════════════════════════════════════════════════════════════════
+   DATOS COMPLETOS POR MUNICIPIO (+ parroquias)
+══════════════════════════════════════════════════════════════════ */
+const DATA = {
+  "Valencia": {
+    capital:"Valencia", mesas:742, elec:613670,
+    lat:10.153985, lng:-67.988735,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Valencia.jpg?raw=true",
+    parroquias:["Candelaria","Catedral","El Socorro","Miguel Peña","Rafael Urdaneta","San Blas","San José","Santa Rosa","Negro Primero"]
+  },
+  "Diego Ibarra": {
+    capital:"Mariara", mesas:90, elec:71951,
+    lat:10.288812, lng:-67.721095,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Diego%20Ibarra.jpg?raw=true",
+    parroquias:["Mariara","Aguas Calientes"]
+  },
+  "Carlos Arvelo": {
+    capital:"Güigüe", mesas:147, elec:107312,
+    lat:10.083036, lng:-67.780881,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/carlos%20arvelo.jpg?raw=true",
+    parroquias:["Güigüe","Belén","Tacarigua"]
+  },
+  "Guacara": {
+    capital:"Guacara", mesas:153, elec:131072,
+    lat:10.263974, lng:-67.890448,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Guacara.jpg?raw=true",
+    parroquias:["Guacara","Ciudad Alianza","Yagua"]
+  },
+  "Juan José Mora": {
+    capital:"Morón", mesas:78, elec:53965,
+    lat:10.491015, lng:-68.198705,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Juan%20Jose%20Mora.jpg?raw=true",
+    parroquias:["Morón","Urama"]
+  },
+  "Libertador": {
+    capital:"Tocuyito", mesas:159, elec:124901,
+    lat:10.015869, lng:-68.154266,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Libertador.jpg?raw=true",
+    parroquias:["Tocuyito","Independencia"]
+  },
+  "Los Guayos": {
+    capital:"Los Guayos", mesas:131, elec:106124,
+    lat:10.172879, lng:-67.925227,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Los%20Guayos.jpg?raw=true",
+    parroquias:["Los Guayos"]
+  },
+  "Miranda": {
+    capital:"Miranda", mesas:31, elec:22578,
+    lat:10.149892, lng:-68.401530,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Miranda.jpg?raw=true",
+    parroquias:["Miranda"]
+  },
+  "Montalban": {
+    capital:"Montalbán", mesas:24, elec:19238,
+    lat:10.213548, lng:-68.325858,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Montalban.jpg?raw=true",
+    parroquias:["Montalbán"]
+  },
+  "Naguanagua": {
+    capital:"Naguanagua", mesas:127, elec:106869,
+    lat:10.268467, lng:-68.015500,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Naguanagua.jpg?raw=true",
+    parroquias:["Naguanagua"]
+  },
+  "Puerto Cabello": {
+    capital:"Puerto Cabello", mesas:188, elec:150415,
+    lat:10.471149, lng:-68.024911,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Puerto%20Cabello.jpg?raw=true",
+    parroquias:["Bartolomé Salom","Democracia","Fraternidad","Goaigoaza","Juan José Flores","Unión","Borburata","Patanemo"]
+  },
+  "San Diego": {
+    capital:"San Diego", mesas:81, elec:72497,
+    lat:10.258939, lng:-67.963485,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20diego.jpg?raw=true",
+    parroquias:["San Diego"]
+  },
+  "San Joaquin": {
+    capital:"San Joaquín", mesas:56, elec:45866,
+    lat:10.259778, lng:-67.801935,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20Joaquin.jpg?raw=true",
+    parroquias:["San Joaquín"]
+  },
+  "Bejuma": {
+    capital:"Bejuma", mesas:52, elec:37484,
+    lat:10.176950, lng:-68.259151,
+    flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Bejuma.jpg?raw=true",
+    parroquias:["Simón Bolívar","Canoabo","Bejuma"]
+  },
+};
 
-        // ============ MUNICIPALITY DATA ============
-        const municipiosData = {
-            'valencia': {
-                nombre: 'Valencia',
-                capital: 'Valencia',
-                mesas: 742,
-                electores: 613670,
-                coords: [10.153985, -67.988735],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Valencia.jpg?raw=true',
-            },
-            'diego ibarra': {
-                nombre: 'Diego Ibarra',
-                capital: 'Mariara',
-                mesas: 90,
-                electores: 71951,
-                coords: [10.288811896285019, -67.721095227569],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Diego%20Ibarra.jpg?raw=true',
-            },
-            'carlos arvelo': {
-                nombre: 'Carlos Arvelo',
-                capital: 'Güigüe',
-                mesas: 147,
-                electores: 107312,
-                coords: [10.083036252221017, -67.78088119934937],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/carlos%20arvelo.jpg?raw=true',
-            },
-            'guacara': {
-                nombre: 'Guacara',
-                capital: 'Guacara',
-                mesas: 153,
-                electores: 131072,
-                coords: [10.263973699617027, -67.89044826555894],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Guacara.jpg?raw=true',
-            },
-            'juan jose mora': {
-                nombre: 'Juan José Mora',
-                capital: 'Morón',
-                mesas: 78,
-                electores: 53965,
-                coords: [10.491015251649955, -68.19870494909637],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Juan%20Jose%20Mora.jpg?raw=true',
-            },
-            'libertador': {
-                nombre: 'Libertador',
-                capital: 'Tocuyito',
-                mesas: 159,
-                electores: 124901,
-                coords: [10.015868817017767, -68.15426613491833],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Libertador.jpg?raw=true',
-            },
-            'los guayos': {
-                nombre: 'Los Guayos',
-                capital: 'Los Guayos',
-                mesas: 131,
-                electores: 106124,
-                coords: [10.172878935409209, -67.92522658219437],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Los%20Guayos.jpg?raw=true',
-            },
-            'miranda': {
-                nombre: 'Miranda',
-                capital: 'Miranda',
-                mesas: 31,
-                electores: 22578,
-                coords: [10.14989167991073, -68.40152973582964],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Miranda.jpg?raw=true',
-            },
-            'montalban': {
-                nombre: 'Montalbán',
-                capital: 'Montalbán',
-                mesas: 24,
-                electores: 19238,
-                coords: [10.213547833269049, -68.32585769306088],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Montalban.jpg?raw=true',
-            },
-            'naguanagua': {
-                nombre: 'Naguanagua',
-                capital: 'Naguanagua',
-                mesas: 127,
-                electores: 106869,
-                coords: [10.26846658037033, -68.01550029082819],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Naguanagua.jpg?raw=true',
-            },
-            'puerto cabello': {
-                nombre: 'Puerto Cabello',
-                capital: 'Puerto Cabello',
-                mesas: 188,
-                electores: 150415,
-                coords: [10.4711485642249, -68.02491129936558],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Puerto%20Cabello.jpg?raw=true',
-            },
-            'san diego': {
-                nombre: 'San Diego',
-                capital: 'San Diego',
-                mesas: 81,
-                electores: 72497,
-                coords: [10.258939011598416, -67.96348455513319],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20diego.jpg?raw=true',
-            },
-            'san joaquin': {
-                nombre: 'San Joaquín',
-                capital: 'San Joaquín',
-                mesas: 56,
-                electores: 45866,
-                coords: [10.259778122836938, -67.80193511159757],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20Joaquin.jpg?raw=true',
-            },
-            'bejuma': {
-                nombre: 'Bejuma',
-                capital: 'Bejuma',
-                mesas: 52,
-                electores: 37484,
-                coords: [10.176950261527372, -68.25915092701509],
-                bandera: 'https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Bejuma.jpg?raw=true',
-            },
-        };
+// Alias de normalización
+const ALIAS = {
+  "montalban":"Montalban","montalbán":"Montalban",
+  "san joaquín":"San Joaquin","san joaquin":"San Joaquin",
+  "juan josé mora":"Juan José Mora","juan jose mora":"Juan José Mora",
+};
 
-        // ============ HELPER: NORMALIZE STRING ============
-        function normalize(str) {
-            if (!str) return '';
-            return str
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .toLowerCase()
-                .replace(/[^a-z0-9\s]/g, '')
-                .trim();
-        }
+const TOTAL = 1663942;
 
-        // ============ HELPER: FORMAT NUMBER ============
-        function formatNumber(num) {
-            return Number(num).toLocaleString('es-VE');
-        }
+/* ══════════════════════════════════════════════════════════════════
+   TILES / CAPAS BASE
+══════════════════════════════════════════════════════════════════ */
+const TILES = {
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}),
+  osm:  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:19}),
+  sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}),
+  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:17}),
+};
 
-        // ============ ROBUST MUNICIPALITY MATCHING ============
-        // Iterates over all property values of a GeoJSON feature, normalizes them,
-        // and returns the first matching municipiosData entry, or null.
-        function findMunicipioDataFromFeature(feature) {
-            if (!feature || !feature.properties) return null;
-            const props = feature.properties;
+const map = L.map('map',{center:[10.22,-68.05],zoom:10,zoomControl:true,attributionControl:false,layers:[TILES.dark]});
+map.zoomControl.setPosition('topright');
 
-            // Collect all string property values
-            const candidateValues = Object.values(props).filter(v => typeof v === 'string' && v.trim().length > 0);
+let curTile='dark';
+function setTile(name){
+  map.removeLayer(TILES[curTile]);
+  map.addLayer(TILES[name]);
+  TILES[name].bringToBack();
+  [munLayer,parLayer].forEach(l=>{if(l) l.bringToFront()});
+  curTile=name;
+  document.querySelectorAll('.lb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('lb-'+name).classList.add('on');
+}
 
-            for (const val of candidateValues) {
-                const normalizedVal = normalize(val);
-                if (!normalizedVal) continue;
+/* ══════════════════════════════════════════════════════════════════
+   ESTILOS VECTORIALES
+══════════════════════════════════════════════════════════════════ */
+const ST = {
+  mun_base: {color:'#27c06a',weight:2,fillColor:'#1a3a8f',fillOpacity:0.52,opacity:1},
+  mun_hov:  {color:'#5b9fff',weight:3,  fillColor:'#2060d8',fillOpacity:0.78,opacity:1},
+  mun_sel:  {color:'#27c06a',weight:3.5,fillColor:'#1b8a4c',fillOpacity:0.72,opacity:1},
+  mun_dim:  {color:'#0d2060',weight:1,  fillColor:'#040e28',fillOpacity:0.2, opacity:0.3},
+  par_base: {color:'rgba(100,160,255,0.0)',weight:0,fillColor:'transparent',fillOpacity:0},
+  par_sel:  {color:'#5b9fff',weight:1.5,fillColor:'rgba(80,160,255,0.18)',fillOpacity:1,opacity:0.9,dashArray:'4 4'},
+};
 
-                // Direct key match
-                if (municipiosData[normalizedVal]) {
-                    console.log(`✅ Encontrado por clave exacta: "${val}" → "${normalizedVal}"`);
-                    return municipiosData[normalizedVal];
-                }
+let selMun=null, munLayer=null, parLayer=null, curMunKey=null;
 
-                // Check if any municipio key is contained within the value or vice versa
-                for (const [key, data] of Object.entries(municipiosData)) {
-                    if (normalizedVal.includes(key) || key.includes(normalizedVal)) {
-                        console.log(`✅ Encontrado por inclusión: "${val}" ↔ "${key}"`);
-                        return data;
-                    }
-                    // Also compare against the display name
-                    const normalizedNombre = normalize(data.nombre);
-                    if (normalizedVal === normalizedNombre ||
-                        normalizedVal.includes(normalizedNombre) ||
-                        normalizedNombre.includes(normalizedVal)) {
-                        console.log(`✅ Encontrado por nombre: "${val}" ↔ "${data.nombre}"`);
-                        return data;
-                    }
-                }
-            }
-            console.warn(`⚠️ No se encontró municipio para feature. Propiedades:`, props);
-            return null;
-        }
+/* ══════════════════════════════════════════════════════════════════
+   NORMALIZACIÓN
+══════════════════════════════════════════════════════════════════ */
+function norm(s){return(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 
-        // Keep legacy function for backward compatibility (not used directly now)
-        function findMunicipioData(geoJsonName) {
-            const normalizedInput = normalize(geoJsonName);
-            if (municipiosData[normalizedInput]) return municipiosData[normalizedInput];
-            for (const [key, data] of Object.entries(municipiosData)) {
-                if (key.includes(normalizedInput) || normalizedInput.includes(key)) return data;
-                if (normalize(data.nombre) === normalizedInput) return data;
-            }
-            return null;
-        }
+function matchKey(raw){
+  if(!raw) return null;
+  const lo=norm(raw);
+  if(ALIAS[lo]) return ALIAS[lo];
+  for(const k of Object.keys(DATA)){if(norm(k)===lo) return k}
+  for(const k of Object.keys(DATA)){if(lo.includes(norm(k))||norm(k).includes(lo)) return k}
+  return null;
+}
 
-        // ============ LEAFLET MAP INITIALIZATION ============
-        const caraboboCenter = [10.15, -68.0];
-        const defaultZoom = 10;
+/* ══════════════════════════════════════════════════════════════════
+   PANEL LATERAL
+══════════════════════════════════════════════════════════════════ */
+const panel=document.getElementById('panel');
+const hint=document.getElementById('hint');
+let hintGone=false;
 
-        const map = L.map('map', {
-            center: caraboboCenter,
-            zoom: defaultZoom,
-            zoomControl: true,
-            attributionControl: true,
-            minZoom: 8,
-            maxZoom: 17,
-            scrollWheelZoom: true,
-            doubleClickZoom: true,
-            dragging: true,
-        });
+function n(v){return v.toLocaleString('es-VE')}
 
-        // ---- Base Layers ----
-        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19,
-        });
+function openPanel(key){
+  const d=DATA[key]; if(!d) return;
+  document.getElementById('pflag').src=d.flag;
+  document.getElementById('pname').textContent=key;
+  document.getElementById('pcap').textContent='Capital: '+d.capital;
+  document.getElementById('sv-m').textContent=n(d.mesas);
+  document.getElementById('sv-e').textContent=n(d.elec);
+  const pct=((d.elec/TOTAL)*100);
+  document.getElementById('sv-p').textContent=pct.toFixed(1)+'%';
+  document.getElementById('sv-r').textContent=n(Math.round(d.elec/d.mesas));
+  // pct real escalado: max municipio=Valencia~36%, escalar a 100%
+  document.getElementById('pbar-fill').style.width=Math.min(pct/37*100,100)+'%';
+  // parroquias
+  const list=document.getElementById('ppar-list');
+  list.innerHTML='';
+  (d.parroquias||[]).forEach(p=>{
+    const el=document.createElement('div');
+    el.className='par-item';
+    el.innerHTML=`<span class="pi"></span><span>${p}</span>`;
+    list.appendChild(el);
+  });
+  panel.classList.add('open');
+  if(!hintGone){hint.classList.add('gone');hintGone=true}
+}
 
-        const satelliteLayer = L.tileLayer(
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-                maxZoom: 19,
-            });
+function closePanel(){
+  panel.classList.remove('open');
+  if(munLayer) munLayer.eachLayer(l=>l.setStyle(ST.mun_base));
+  if(parLayer) parLayer.eachLayer(l=>l.setStyle(ST.par_base));
+  selMun=null; curMunKey=null;
+}
+document.getElementById('pcls').addEventListener('click',closePanel);
 
-        streetLayer.addTo(map);
-        let currentBaseLayer = 'street';
+/* ══════════════════════════════════════════════════════════════════
+   INTERACCIONES MUNICIPIOS
+══════════════════════════════════════════════════════════════════ */
+function onEachMun(feat,layer){
+  const raw=feat.properties.NAME_2||feat.properties.name||'';
+  const key=matchKey(raw)||raw;
 
-        function setBaseLayer(layerType) {
-            if (layerType === 'street' && currentBaseLayer !== 'street') {
-                map.removeLayer(satelliteLayer);
-                streetLayer.addTo(map);
-                currentBaseLayer = 'street';
-                btnStreet.classList.add('active');
-                btnSatellite.classList.remove('active');
-            } else if (layerType === 'satellite' && currentBaseLayer !== 'satellite') {
-                map.removeLayer(streetLayer);
-                satelliteLayer.addTo(map);
-                currentBaseLayer = 'satellite';
-                btnSatellite.classList.add('active');
-                btnStreet.classList.remove('active');
-            }
-        }
+  layer.bindTooltip(key,{className:'mtt',sticky:true,offset:[14,0]});
 
-        btnStreet.addEventListener('click', () => setBaseLayer('street'));
-        btnSatellite.addEventListener('click', () => setBaseLayer('satellite'));
+  layer.on('mouseover',function(){
+    if(this===selMun) return;
+    this.setStyle(ST.mun_hov); this.bringToFront();
+  });
+  layer.on('mouseout',function(){
+    if(this===selMun) return;
+    this.setStyle(selMun?ST.mun_dim:ST.mun_base);
+  });
+  layer.on('click',function(e){
+    L.DomEvent.stopPropagation(e);
+    if(selMun&&selMun!==this) selMun.setStyle(ST.mun_dim);
+    selMun=this; curMunKey=key;
+    munLayer.eachLayer(l=>{if(l!==selMun) l.setStyle(ST.mun_dim)});
+    selMun.setStyle(ST.mun_sel); selMun.bringToFront();
+    map.fitBounds(selMun.getBounds(),{padding:[60,60],maxZoom:13});
+    // resaltar parroquias del municipio
+    highlightParroquias(key);
+    const mk=matchKey(raw); if(mk) openPanel(mk);
+  });
+}
 
-        // ============ GEOJSON LAYER & STATE ============
-        let geoJsonLayer = null;
-        let allPolygonLayers = [];
-        let selectedLayer = null;
-        let isPanelOpen = false;
+/* ══════════════════════════════════════════════════════════════════
+   RESALTADO DE PARROQUIAS
+══════════════════════════════════════════════════════════════════ */
+function highlightParroquias(munKey){
+  if(!parLayer) return;
+  const munNorm=norm(munKey);
+  parLayer.eachLayer(l=>{
+    // El GeoJSON de parroquias debe tener municipio en properties
+    const pMun=norm(
+      l.feature.properties.municipio||
+      l.feature.properties.MUNICIPIO||
+      l.feature.properties.NAME_2||
+      l.feature.properties.mun||''
+    );
+    const match=pMun===munNorm||pMun.includes(munNorm)||munNorm.includes(pMun);
+    l.setStyle(match?ST.par_sel:ST.par_base);
+    if(match) l.bringToFront();
+  });
+}
 
-        const defaultStyle = {
-            fillColor: '#1a8a4a',
-            fillOpacity: 0.38,
-            color: '#1a3f63',
-            weight: 1.8,
-            dashArray: null,
-            opacity: 0.85,
-        };
+/* ══════════════════════════════════════════════════════════════════
+   INTERACCIONES PARROQUIAS
+══════════════════════════════════════════════════════════════════ */
+function onEachPar(feat,layer){
+  const name=feat.properties.parroquia||feat.properties.PARROQUIA||
+             feat.properties.NAME_3||feat.properties.name||'Parroquia';
+  layer.bindTooltip(name,{className:'mtt-par',sticky:true,offset:[10,0]});
+}
 
-        const hoverStyle = {
-            fillColor: '#25b85f',
-            fillOpacity: 0.55,
-            color: '#f0cc6e',
-            weight: 3.2,
-            dashArray: null,
-            opacity: 1,
-        };
+/* ══════════════════════════════════════════════════════════════════
+   CARGA DE DATOS
+══════════════════════════════════════════════════════════════════ */
+const MUN_URL = 'https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/20fa810cbe0cf9a47bf6ea735241492e515fd0b6/ven_admin2.json';
+const PAR_URL = 'https://github.com/jhonmalorne/CoordinacionRegional/blob/3a2113a49d74493343291f7437e81e62feeeb535/parroquias_carabobo.geojson.json';
 
-        const selectedStyle = {
-            fillColor: '#1a8a4a',
-            fillOpacity: 0.65,
-            color: '#f0cc6e',
-            weight: 4,
-            dashArray: null,
-            opacity: 1,
-        };
+let loadedCount=0;
+function onLoaded(){
+  loadedCount++;
+  if(loadedCount>=2) hideLoader();
+}
 
-        const dimmedStyle = {
-            fillColor: '#95a5a6',
-            fillOpacity: 0.18,
-            color: '#7f8c8d',
-            weight: 1,
-            dashArray: '4 3',
-            opacity: 0.5,
-        };
+function hideLoader(){
+  const l=document.getElementById('loader');
+  l.classList.add('done');
+  setTimeout(()=>{if(l.parentNode)l.remove()},700);
+}
 
-        function resetAllLayers() {
-            allPolygonLayers.forEach(layer => {
-                layer.setStyle(defaultStyle);
-                if (layer._path) layer._path.classList.remove('glow-hover');
-            });
-            selectedLayer = null;
-            mapEl.classList.remove('dimmed-bg');
-        }
+function setMsg(t){document.getElementById('loader-msg').textContent=t}
 
-        function dimAllExcept(selected) {
-            allPolygonLayers.forEach(layer => {
-                if (layer === selected) {
-                    layer.setStyle(selectedStyle);
-                    if (layer._path) layer._path.classList.add('glow-hover');
-                } else {
-                    layer.setStyle(dimmedStyle);
-                    if (layer._path) layer._path.classList.remove('glow-hover');
-                }
-            });
-            mapEl.classList.add('dimmed-bg');
-        }
+// ── Municipios
+setMsg('Cargando municipios…');
+fetch(MUN_URL)
+  .then(r=>{if(!r.ok) throw 0; return r.json()})
+  .then(data=>{
+    const feats=data.features.filter(f=>{
+      const n1=(f.properties.NAME_1||f.properties.adm1||'').toLowerCase();
+      return n1.includes('carabobo');
+    });
+    const col={type:'FeatureCollection',features:feats.length?feats:data.features};
+    munLayer=L.geoJSON(col,{style:()=>ST.mun_base,onEachFeature:onEachMun}).addTo(map);
+    munLayer.bringToFront();
+    map.fitBounds(munLayer.getBounds(),{padding:[28,28]});
+    onLoaded();
+  })
+  .catch(()=>{
+    // Fallback marcadores
+    Object.entries(DATA).forEach(([key,d])=>{
+      L.circleMarker([d.lat,d.lng],{
+        radius:Math.max(10,Math.sqrt(d.elec/800)),
+        color:'#27c06a',weight:2,fillColor:'#1a3a8f',fillOpacity:0.75
+      }).addTo(map)
+       .bindTooltip(key,{className:'mtt',sticky:true})
+       .on('click',()=>{map.setView([d.lat,d.lng],12);openPanel(key)});
+    });
+    onLoaded();
+  });
 
-        function openSidePanel(municipioData) {
-            if (!municipioData) return;
-            panelMunicipioNombre.textContent = municipioData.nombre;
-            panelCapital.textContent = municipioData.capital;
-            panelMesas.textContent = formatNumber(municipioData.mesas);
-            panelElectores.textContent = formatNumber(municipioData.electores);
-            panelBandera.src = municipioData.bandera || '';
-            panelBandera.alt = 'Bandera de ' + municipioData.nombre;
-            sidePanel.classList.add('open');
-            isPanelOpen = true;
-        }
+// ── Parroquias
+setMsg('Cargando parroquias…');
+fetch(PAR_URL)
+  .then(r=>{if(!r.ok) throw 0; return r.json()})
+  .then(data=>{
+    parLayer=L.geoJSON(data,{style:()=>ST.par_base,onEachFeature:onEachPar}).addTo(map);
+    onLoaded();
+  })
+  .catch(()=>{
+    // Parroquias como marcadores si falla el GeoJSON
+    Object.entries(DATA).forEach(([munKey,d])=>{
+      (d.parroquias||[]).forEach(pName=>{
+        // Marcar en la capital del municipio (aproximación)
+        L.circleMarker([d.lat,d.lng],{
+          radius:4,color:'#5b9fff',weight:1,fillColor:'rgba(80,160,255,0.3)',fillOpacity:1
+        }).addTo(map).bindTooltip(pName,{className:'mtt-par',sticky:true});
+      });
+    });
+    onLoaded();
+  });
 
-        function closeSidePanel() {
-            sidePanel.classList.remove('open');
-            isPanelOpen = false;
-            resetAllLayers();
-            if (geoJsonLayer) {
-                try {
-                    const allBounds = geoJsonLayer.getBounds();
-                    if (allBounds.isValid()) {
-                        map.fitBounds(allBounds, { padding: [40, 40], maxZoom: 11, duration: 0.6 });
-                    }
-                } catch (e) {
-                    map.setView(caraboboCenter, defaultZoom, { duration: 0.6 });
-                }
-            } else {
-                map.setView(caraboboCenter, defaultZoom, { duration: 0.6 });
-            }
-        }
-
-        panelCloseBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeSidePanel();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && isPanelOpen) closeSidePanel();
-        });
-
-        function handleMunicipioClick(layer, municipioData, featureBounds) {
-            if (selectedLayer === layer) {
-                closeSidePanel();
-                return;
-            }
-            resetAllLayers();
-            selectedLayer = layer;
-            dimAllExcept(layer);
-            openSidePanel(municipioData);
-
-            if (featureBounds && featureBounds.isValid()) {
-                const isMobile = window.innerWidth <= 768;
-                const paddingRight = isMobile ? 30 : 420;
-                const paddingTop = isMobile ? 180 : 50;
-                map.fitBounds(featureBounds, {
-                    paddingTopLeft: [30, paddingTop],
-                    paddingBottomRight: [paddingRight, 30],
-                    maxZoom: 14,
-                    duration: 0.7,
-                });
-            }
-        }
-
-        // ============ GEOJSON ON EACH FEATURE (IMPROVED) ============
-        function onEachFeature(feature, layer) {
-            allPolygonLayers.push(layer);
-
-            // Use the new robust matching against all property values
-            const municipioData = findMunicipioDataFromFeature(feature);
-            const geoJsonName = municipioData ? municipioData.nombre : (feature.properties?.NAME_2 || feature.properties?.NOM_MUN || 'Desconocido');
-
-            layer._municipioData = municipioData;
-            layer._geoJsonName = geoJsonName;
-
-            layer.on('mouseover', function(e) {
-                const lyr = e.target;
-                if (lyr === selectedLayer) return;
-                lyr.setStyle(hoverStyle);
-                if (lyr._path) lyr._path.classList.add('glow-hover');
-                lyr.bringToFront();
-                const displayName = municipioData ? municipioData.nombre : geoJsonName;
-                lyr.bindTooltip(displayName, {
-                    sticky: true,
-                    direction: 'top',
-                    offset: [0, -8],
-                    className: 'custom-tooltip',
-                    opacity: 0.92,
-                }).openTooltip(e.latlng);
-            });
-
-            layer.on('mouseout', function(e) {
-                const lyr = e.target;
-                if (lyr === selectedLayer) return;
-                lyr.setStyle(defaultStyle);
-                if (lyr._path) lyr._path.classList.remove('glow-hover');
-                lyr.unbindTooltip();
-            });
-
-            layer.on('click', function(e) {
-                L.DomEvent.stopPropagation(e);
-                const lyr = e.target;
-                const data = lyr._municipioData;
-                const bounds = lyr.getBounds ? lyr.getBounds() : null;
-                if (data) {
-                    handleMunicipioClick(lyr, data, bounds);
-                } else {
-                    // Fallback with the name we could extract
-                    const fallbackData = {
-                        nombre: geoJsonName || 'Municipio sin datos',
-                        capital: 'No disponible',
-                        mesas: 0,
-                        electores: 0,
-                        bandera: '',
-                    };
-                    console.warn('Usando datos de respaldo para:', geoJsonName);
-                    handleMunicipioClick(lyr, fallbackData, bounds);
-                }
-            });
-        }
-
-        // ============ FILTER GEOJSON FOR CARABOBO ============
-        function filterCarabobo(feature) {
-            const props = feature.properties || {};
-            // Check all property values for the word "carabobo"
-            const allValues = Object.values(props).map(v => String(v));
-            return allValues.some(val => normalize(val).includes('carabobo'));
-        }
-
-        // ============ LOAD GEOJSON ============
-        const geoJsonUrl =
-            'https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/20fa810cbe0cf9a47bf6ea735241492e515fd0b6/ven_admin2.json';
-
-        function loadGeoJSON() {
-            loadingOverlay.classList.remove('hidden');
-            fetch(geoJsonUrl)
-                .then(response => {
-                    if (!response.ok) throw new Error('HTTP ' + response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    const caraboboFeatures = data.features ? data.features.filter(filterCarabobo) : [];
-                    if (caraboboFeatures.length === 0) {
-                        console.warn('No se encontraron municipios de Carabobo. Intentando con todos los features...');
-                        const fallbackFeatures = data.features ? data.features.filter(f => {
-                            const vals = Object.values(f.properties || {}).map(v => String(v));
-                            return vals.some(v => normalize(v).includes('carabobo'));
-                        }) : [];
-                        if (fallbackFeatures.length > 0) {
-                            createGeoJsonLayer({ ...data, features: fallbackFeatures });
-                        } else {
-                            throw new Error('No se pudo filtrar Carabobo.');
-                        }
-                    } else {
-                        createGeoJsonLayer({ ...data, features: caraboboFeatures });
-                    }
-                })
-                .catch(err => {
-                    console.error('Error cargando GeoJSON:', err);
-                    loadingOverlay.classList.add('hidden');
-                    L.popup()
-                        .setLatLng(caraboboCenter)
-                        .setContent('<strong>⚠️ Error al cargar datos</strong><br><small>Verifica la conexión e intenta recargar.</small>')
-                        .openOn(map);
-                    statMesas.textContent = 'Error';
-                    statElectores.textContent = 'Recargar';
-                });
-        }
-
-        function createGeoJsonLayer(geoJsonData) {
-            geoJsonLayer = L.geoJSON(geoJsonData, {
-                style: defaultStyle,
-                onEachFeature: onEachFeature,
-            }).addTo(map);
-
-            const bounds = geoJsonLayer.getBounds();
-            if (bounds.isValid()) {
-                map.fitBounds(bounds, { padding: [35, 35], maxZoom: 11, duration: 0.5 });
-            }
-
-            const totalMesas = Object.values(municipiosData).reduce((sum, d) => sum + d.mesas, 0);
-            const totalElectores = Object.values(municipiosData).reduce((sum, d) => sum + d.electores, 0);
-            statMesas.textContent = formatNumber(totalMesas);
-            statElectores.textContent = formatNumber(totalElectores);
-
-            loadingOverlay.classList.add('hidden');
-            console.log(`✅ Cargados ${geoJsonData.features.length} municipios de Carabobo.`);
-        }
-
-        map.on('click', function(e) {
-            if (isPanelOpen && selectedLayer) closeSidePanel();
-        });
-
-        window.addEventListener('resize', () => {
-            clearTimeout(window._resizeTimer);
-            window._resizeTimer = setTimeout(() => {
-                map.invalidateSize();
-                if (isPanelOpen && selectedLayer && selectedLayer.getBounds) {
-                    const bounds = selectedLayer.getBounds();
-                    if (bounds.isValid()) {
-                        const isMobile = window.innerWidth <= 768;
-                        const paddingRight = isMobile ? 30 : 420;
-                        const paddingTop = isMobile ? 200 : 50;
-                        map.fitBounds(bounds, {
-                            paddingTopLeft: [30, paddingTop],
-                            paddingBottomRight: [paddingRight, 30],
-                            maxZoom: 14,
-                            duration: 0.4,
-                        });
-                    }
-                }
-            }, 250);
-        });
-
-        loadGeoJSON();
-
-        window._caraboboMap = {
-            map,
-            geoJsonLayer,
-            allPolygonLayers,
-            selectedLayer,
-            municipiosData,
-            resetAllLayers,
-            closeSidePanel,
-            openSidePanel,
-            findMunicipioDataFromFeature,
-        };
-
-        console.log('🗺️ Mapa Electoral de Carabobo inicializado (versión mejorada).');
-        console.log('   🧠 Ahora busca el nombre del municipio en cualquier campo del GeoJSON.');
-    })();
+// Click fuera → cerrar
+map.on('click',()=>closePanel());
 </script>
 </body>
 </html>
