@@ -3,312 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Concertación Carabobo | Mapa Electoral Interactivo</title>
-    <!-- Leaflet CSS & JS from CDN -->
+    <title>Concertación Carabobo | Mapa Electoral (Depuración incluida)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Poppins', 'Segoe UI', system-ui, -apple-system, 'Inter', sans-serif;
-            background: #f0f4f8;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-        }
-
-        /* Header futurista */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; overflow: hidden; height: 100vh; }
         .header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(10, 35, 65, 0.92);
-            backdrop-filter: blur(12px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-            padding: 0.8rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(10, 35, 65, 0.92); backdrop-filter: blur(12px);
+            padding: 0.8rem 2rem; display: flex; align-items: center; justify-content: space-between;
             border-bottom: 1px solid rgba(255,255,255,0.2);
         }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo-concertacion {
-            height: 52px;
-            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-        }
-
-        .title {
-            color: white;
-            font-weight: 600;
-            font-size: 1.2rem;
-            letter-spacing: 1px;
-            background: linear-gradient(135deg, #FFFFFF, #B8E1FC);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-        }
-
-        /* Mapa ocupa toda la pantalla */
-        #map {
-            height: 100vh;
-            width: 100%;
-            z-index: 1;
-        }
-
-        /* Panel lateral premium (dashboard) */
+        .logo-concertacion { height: 48px; }
+        .title { color: white; font-weight: 600; background: linear-gradient(135deg, #FFF, #B8E1FC); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
         .sidebar {
-            position: absolute;
-            top: 85px;
-            right: 20px;
-            bottom: 20px;
-            width: 360px;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(2px);
-            border-radius: 28px;
-            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 100, 80, 0.1);
-            z-index: 1000;
-            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.25s ease;
-            overflow-y: auto;
-            font-family: 'Inter', sans-serif;
-            transform: translateX(0);
-            opacity: 1;
+            position: absolute; top: 85px; right: 20px; bottom: 20px; width: 360px;
+            background: rgba(255,255,255,0.98); border-radius: 28px; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.35);
+            z-index: 1000; overflow-y: auto; transition: transform 0.3s; font-family: 'Inter', sans-serif;
         }
-
-        .sidebar.hidden {
-            transform: translateX(420px);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Scroll elegante */
-        .sidebar::-webkit-scrollbar {
-            width: 5px;
-        }
-        .sidebar::-webkit-scrollbar-track {
-            background: #e9ecef;
-            border-radius: 10px;
-        }
-        .sidebar::-webkit-scrollbar-thumb {
-            background: #2c7da0;
-            border-radius: 10px;
-        }
-
-        .sidebar-content {
-            padding: 1.8rem 1.5rem;
-        }
-
+        .sidebar.hidden { transform: translateX(420px); pointer-events: none; }
+        .sidebar-content { padding: 1.5rem; }
         .close-sidebar {
-            position: absolute;
-            top: 18px;
-            right: 20px;
-            background: #eef2f5;
-            border: none;
-            font-size: 1.4rem;
-            cursor: pointer;
-            color: #1e4663;
-            width: 32px;
-            height: 32px;
-            border-radius: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.2s;
-            font-weight: bold;
+            position: absolute; top: 18px; right: 20px; background: #eef2f5; border: none;
+            width: 32px; height: 32px; border-radius: 40px; cursor: pointer; font-weight: bold;
         }
-
-        .close-sidebar:hover {
-            background: #cbdde9;
-            transform: scale(1.05);
-        }
-
-        .muni-header {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid #eef2fa;
-            padding-bottom: 1rem;
-        }
-
-        .flag-small {
-            width: 65px;
-            height: 45px;
-            object-fit: cover;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-
-        .muni-title {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #0a2b3e;
-            line-height: 1.2;
-        }
-
-        .stat-card {
-            background: #f8fafd;
-            border-radius: 20px;
-            padding: 0.9rem 1rem;
-            margin: 1rem 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-            border: 1px solid rgba(60, 130, 100, 0.15);
-        }
-
-        .stat-label {
-            font-weight: 500;
-            color: #2c5a6e;
-            font-size: 0.85rem;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-number {
-            font-weight: 800;
-            font-size: 1.45rem;
-            color: #0f4c5f;
-        }
-
-        .parishes-list {
-            background: #ffffff;
-            border-radius: 24px;
-            padding: 0.8rem 1.2rem;
-            margin: 1rem 0;
-            border: 1px solid #e2edf2;
-            max-height: 210px;
-            overflow-y: auto;
-        }
-
-        .parishes-list h4 {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #1e6f5c;
-            margin-bottom: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .parish-item {
-            padding: 6px 0;
-            border-bottom: 1px dashed #e9ecef;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #1f3e48;
-        }
-
-        .concertacion-logo-panel {
-            display: flex;
-            justify-content: center;
-            margin-top: 1.8rem;
-            padding-top: 1rem;
-            border-top: 1px solid #dee4e9;
-        }
-
-        .concertacion-logo-panel img {
-            height: 48px;
-            opacity: 0.85;
-        }
-
-        .capital-badge {
-            background: #eef3fc;
-            border-radius: 32px;
-            padding: 5px 12px;
-            display: inline-block;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: #005f73;
-        }
-
-        /* Control layers personalizado y responsivo */
-        @media (max-width: 700px) {
-            .sidebar {
-                width: 85%;
-                right: 10px;
-                top: 75px;
-                bottom: 10px;
-            }
-            .header {
-                padding: 0.5rem 1rem;
-            }
-            .logo-concertacion {
-                height: 40px;
-            }
-            .title {
-                font-size: 0.9rem;
-            }
-            .muni-title {
-                font-size: 1.3rem;
-            }
-        }
-
-        /* Hover glow para mapas (Leaflet overlay) - se aplica con JS pero agregamos efecto base */
-        .leaflet-interactive {
-            transition: stroke-width 0.12s ease, filter 0.2s ease;
-        }
-        .glow-hover {
-            filter: drop-shadow(0 0 5px #ffb347);
-            stroke: #ffbb66;
-            stroke-width: 2.5 !important;
-        }
-
-        /* Spinner de carga */
+        .stat-card { background: #f8fafd; border-radius: 20px; padding: 0.8rem; margin: 1rem 0; display: flex; justify-content: space-between; }
+        .parishes-list { background: white; border-radius: 24px; padding: 0.8rem; max-height: 200px; overflow-y: auto; margin: 1rem 0; }
         .loader {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 6px 14px;
-            border-radius: 50px;
-            font-size: 12px;
-            z-index: 1200;
-            backdrop-filter: blur(4px);
-            font-weight: 500;
+            position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white;
+            padding: 8px 16px; border-radius: 40px; z-index: 1200; font-size: 13px;
         }
+        .error-banner {
+            position: absolute; top: 80px; left: 20px; right: 20px; background: #dc2626; color: white;
+            padding: 12px; border-radius: 16px; z-index: 1100; text-align: center; font-weight: 500;
+        }
+        @media (max-width: 700px) { .sidebar { width: 85%; } }
     </style>
 </head>
 <body>
-
 <div class="header">
     <div class="logo-container">
-        <img class="logo-concertacion" src="https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/logo_conconcertacion_carabobo-removebg-preview.png" alt="Concertación Carabobo" onerror="this.src='https://via.placeholder.com/100x50?text=CC'">
+        <img class="logo-concertacion" src="https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/logo_conconcertacion_carabobo-removebg-preview.png" alt="Concertación">
         <span class="title">Concertación Carabobo · Estrategia Electoral</span>
     </div>
-    <div style="display: flex; gap: 10px;"></div>
 </div>
-
 <div id="map"></div>
-
 <div id="sidebarPanel" class="sidebar hidden">
     <button class="close-sidebar" id="closeSidebarBtn">✕</button>
-    <div class="sidebar-content" id="sidebarDynamic">
-        <!-- contenido dinámico -->
-        <div style="text-align:center; padding:2rem 0;">Selecciona un municipio</div>
-    </div>
+    <div class="sidebar-content" id="sidebarDynamic">Selecciona un municipio</div>
 </div>
-
 <div class="loader" id="loaderMsg">Cargando datos geográficos...</div>
 
 <script>
-    // --------------------------------------------------------------
-    // 1. DATA ESTRUCTURAL: electores, mesas, capitales, banderas (raw)
-    // --------------------------------------------------------------
+    // ======================= CONFIGURACIÓN =======================
+    const MUNI_URL = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/20fa810cbe0cf9a47bf6ea735241492e515fd0b6/ven_admin2.json";
+    const PARROQ_URL = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/2bcdf9a99688ba0458d1796b8465dcb0d2f42b61/parroquias_carabobo.geojson.json";
+    
+    // Datos electorales (proporcionados por ti)
     const electoralData = {
         "Valencia": { mesas: 742, electores: 613670, capital: "Valencia", centro: [10.153985, -67.988735] },
         "Diego Ibarra": { mesas: 90, electores: 71951, capital: "Mariara", centro: [10.288812, -67.721095] },
@@ -325,8 +78,7 @@
         "San Joaquín": { mesas: 56, electores: 45866, capital: "San Joaquín", centro: [10.259778, -67.801935] },
         "Bejuma": { mesas: 52, electores: 37484, capital: "Bejuma", centro: [10.176950, -68.259151] }
     };
-
-    // Banderas por municipio (URLs raw)
+    
     const flagUrls = {
         "Valencia": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Valencia.jpg",
         "Diego Ibarra": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Diego%20Ibarra.jpg",
@@ -343,363 +95,199 @@
         "San Joaquín": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/San%20Joaquin.jpg",
         "Bejuma": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Bejuma.jpg"
     };
-
-    const logoConcertacionUrl = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/logo_conconcertacion_carabobo-removebg-preview.png";
-
-    // GeoJSON Raw URLs
-    const municipiosGeoJsonUrl = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/20fa810cbe0cf9a47bf6ea735241492e515fd0b6/ven_admin2.json";
-    const parroquiasGeoJsonUrl = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/2bcdf9a99688ba0458d1796b8465dcb0d2f42b61/parroquias_carabobo.geojson.json";
-
-    // --------------------------------------------------------------
-    // 2. INICIALIZAR MAPA (Leaflet)
-    // --------------------------------------------------------------
+    const LOGO_URL = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/logo_conconcertacion_carabobo-removebg-preview.png";
+    
+    // ======================= INICIALIZAR MAPA =======================
     const map = L.map('map').setView([10.18, -68.05], 10);
+    const street = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' });
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
+    street.addTo(map);
+    L.control.layers({ "Vista Mapa": street, "Satelital": satellite }).addTo(map);
     
-    // Capa base: mapa calles (OSM)
-    const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> & CartoDB',
-        subdomains: 'abcd',
-        maxZoom: 19
-    });
-    // Capa satelital (Esri World Imagery)
-    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP',
-        maxZoom: 18
-    });
-    
-    streetLayer.addTo(map);
-    // Control de capas
-    const baseMaps = {
-        "Vista Mapa": streetLayer,
-        "Vista Satelital": satelliteLayer
-    };
-    L.control.layers(baseMaps).addTo(map);
-    
-    // Variables globales
-    let municipiosLayer = null;
-    let parroquiasLayer = null;
-    let currentSelectedMunId = null;
-    let currentMunName = null;
-    let allMunicipiosFeatures = []; // guardar capas (L.GeoJSON layers)
-    let allParroquiasFeatures = [];
-    let parishByMunicipioMap = new Map(); // nombre municipio -> array nombres parroquias + layer refs
-    
-    // Sidebar elementos
+    let municipiosLayer = null, parroquiasLayer = null;
+    let parishByMunicipio = new Map();
+    let currentMunId = null;
     const sidebar = document.getElementById('sidebarPanel');
     const sidebarContent = document.getElementById('sidebarDynamic');
-    const closeBtn = document.getElementById('closeSidebarBtn');
+    document.getElementById('closeSidebarBtn').addEventListener('click', () => sidebar.classList.add('hidden'));
     
-    function closeSidebar() {
-        sidebar.classList.add('hidden');
-    }
-    function openSidebar() {
-        sidebar.classList.remove('hidden');
-    }
-    closeBtn.addEventListener('click', closeSidebar);
-    
-    // Helper: resetear estilos municipios (a default)
-    function resetMunicipiosStyles(exceptId = null) {
-        if (!municipiosLayer) return;
-        municipiosLayer.eachLayer(layer => {
-            if (exceptId && layer.feature && layer.feature.properties.id === exceptId) return;
-            layer.setStyle({
-                fillColor: '#3b82b6',
-                color: '#ffffff',
-                weight: 1.2,
-                fillOpacity: 0.55,
-                opacity: 0.9
-            });
-        });
-    }
-    
-    function dimMunicipiosExcept(selectedId) {
-        if (!municipiosLayer) return;
-        municipiosLayer.eachLayer(layer => {
-            if (layer.feature && layer.feature.properties.id === selectedId) {
-                layer.setStyle({
-                    fillColor: '#f4a261',
-                    color: '#ffdd99',
-                    weight: 3,
-                    fillOpacity: 0.85,
-                    opacity: 1
-                });
-            } else {
-                layer.setStyle({
-                    fillColor: '#6c757d',
-                    color: '#adb5bd',
-                    weight: 1,
-                    fillOpacity: 0.25,
-                    opacity: 0.6
-                });
-            }
-        });
-    }
-    
-    // Reset estilos parroquias y dim / highlight según municipio seleccionado
-    function resetParroquiasStyles() {
-        if (!parroquiasLayer) return;
-        parroquiasLayer.eachLayer(layer => {
-            layer.setStyle({
-                fillColor: '#2c6e49',
-                color: '#d4e6d4',
-                weight: 1,
-                fillOpacity: 0.4,
-                opacity: 0.7
-            });
-        });
-    }
-    
-    function highlightParroquiasByMunicipio(municipioName) {
-        if (!parroquiasLayer) return;
-        let highlightCount = 0;
-        parroquiasLayer.eachLayer(layer => {
-            let props = layer.feature.properties;
-            let munNameFromParish = props.ADM2_NAME || props.municipio || props.MPIO_NAME || props.NOMBRE_MPIO || '';
-            // Normalización básica para evitar tildes
-            const normalizeStr = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-            if (normalizeStr(munNameFromParish) === normalizeStr(municipioName)) {
-                layer.setStyle({
-                    fillColor: '#ffb347',
-                    color: '#ffd966',
-                    weight: 2.5,
-                    fillOpacity: 0.85,
-                    opacity: 1
-                });
-                highlightCount++;
-            } else {
-                layer.setStyle({
-                    fillColor: '#4a5d6c',
-                    color: '#a0b2bf',
-                    weight: 0.8,
-                    fillOpacity: 0.2,
-                    opacity: 0.5
-                });
-            }
-        });
-        return highlightCount;
-    }
-    
-    // Mostrar contenido del panel lateral
-    function updateSidebar(municipioName) {
-        const data = electoralData[municipioName];
-        if (!data) return;
-        const flagUrl = flagUrls[municipioName] || "";
-        const parishList = parishByMunicipioMap.get(municipioName) || [];
-        
-        const html = `
-            <div class="muni-header">
-                ${flagUrl ? `<img class="flag-small" src="${flagUrl}" alt="Bandera ${municipioName}" onerror="this.src='https://placehold.co/100x60?text=Bandera'">` : '<div style="width:65px;"></div>'}
-                <div class="muni-title">${municipioName}</div>
-            </div>
-            <div class="capital-badge" style="margin-bottom: 12px;">🏛️ Capital: ${data.capital}</div>
-            <div class="stat-card">
-                <span class="stat-label">🗳️ Total de Mesas</span>
-                <span class="stat-number">${data.mesas.toLocaleString()}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">👥 Total de Electores</span>
-                <span class="stat-number">${data.electores.toLocaleString()}</span>
-            </div>
-            <div class="parishes-list">
-                <h4>📌 Parroquias (${parishList.length})</h4>
-                ${parishList.map(p => `<div class="parish-item">📍 ${p}</div>`).join('') || '<div class="parish-item">No hay datos de parroquias</div>'}
-            </div>
-            <div class="concertacion-logo-panel">
-                <img src="${logoConcertacionUrl}" alt="Concertación Carabobo" style="max-height: 55px;">
-            </div>
-        `;
-        sidebarContent.innerHTML = html;
-        openSidebar();
-    }
-    
-    // Acción al hacer click en municipio (resalta, oscurece otros, resalta parroquias, panel)
-    function onMunicipioClick(feature, layer) {
-        let munName = feature.properties.ADM2_NAME || feature.properties.NAME_2 || feature.properties.NOMBRE;
-        if (!munName) return;
-        // limpiar estilos previos, pero antes guardar id
-        const munId = feature.properties.id || feature.properties.ADM2_PCODE || munName;
-        if (currentSelectedMunId !== munId) {
-            // Reset estilos generales
-            dimMunicipiosExcept(munId);
-            resetParroquiasStyles();
-            highlightParroquiasByMunicipio(munName);
-            currentSelectedMunId = munId;
-            currentMunName = munName;
-            // Actualizar panel
-            updateSidebar(munName);
-            // Hacer zoom al municipio con fitBounds
-            try {
-                const bounds = layer.getBounds();
-                if (bounds.isValid()) map.fitBounds(bounds, { padding: [45, 45] });
-            } catch(e) { console.warn(e); }
-        } else {
-            // si mismo municipio, solo mantener
-            return;
+    function showError(msg) {
+        const loaderDiv = document.getElementById('loaderMsg');
+        loaderDiv.innerHTML = `⚠️ ${msg}`;
+        loaderDiv.style.background = "#b91c1c";
+        console.error(msg);
+        // Mostrar banner adicional
+        if (!document.querySelector('.error-banner')) {
+            const banner = document.createElement('div');
+            banner.className = 'error-banner';
+            banner.innerHTML = msg + ' - Revisa consola (F12)';
+            document.body.prepend(banner);
         }
     }
     
-    // Hover elegante con glow y borde animado (solo si no está seleccionado)
-    function addHoverEffect(layer, feature) {
-        layer.on('mouseover', function(e) {
-            if (currentSelectedMunId && (feature.properties.id === currentSelectedMunId || feature.properties.ADM2_NAME === currentMunName)) return;
-            this.setStyle({
-                weight: 3,
-                color: '#ffcd94',
-                fillOpacity: 0.8,
-                className: 'glow-hover'
-            });
-            if (!L.Browser.ie && !L.Browser.edge) this.bringToFront();
-        });
-        layer.on('mouseout', function(e) {
-            if (currentSelectedMunId && (feature.properties.id === currentSelectedMunId || feature.properties.ADM2_NAME === currentMunName)) return;
-            this.setStyle({
-                weight: 1.2,
-                color: '#ffffff',
-                fillOpacity: 0.55
-            });
-        });
+    // Inteligencia para extraer nombre del municipio de cualquier propiedad
+    function getMunicipioName(props) {
+        const candidates = ['ADM2_NAME', 'NAME_2', 'MPIO_NOMBRE', 'NOMBRE_MUN', 'municipio', 'name'];
+        for (let c of candidates) if (props[c]) return props[c];
+        return null;
     }
     
-    // Construir indice parroquias por municipio a partir de geojson
-    function buildParishIndex(parishGeoJson) {
-        const mapIndex = new Map();
-        parishGeoJson.features.forEach(feat => {
-            let props = feat.properties;
-            let munName = props.ADM2_NAME || props.municipio || props.MPIO_NAME || props.NOMBRE_MPIO || '';
-            let parishName = props.ADM3_NAME || props.PARROQUIA || props.NOMBRE_PARROQUIA || 'Parroquia';
-            if (munName && parishName) {
-                if (!mapIndex.has(munName)) mapIndex.set(munName, []);
-                let arr = mapIndex.get(munName);
-                if (!arr.includes(parishName)) arr.push(parishName);
-            } else if (munName) {
-                if (!mapIndex.has(munName)) mapIndex.set(munName, []);
-                if (!mapIndex.get(munName).includes(parishName)) mapIndex.get(munName).push(parishName);
-            }
-        });
-        // Orden alfabético
-        for(let [k, v] of mapIndex.entries()) {
-            mapIndex.set(k, v.sort());
-        }
-        return mapIndex;
+    function getParroquiaName(props) {
+        const candidates = ['ADM3_NAME', 'NAME_3', 'PARROQUIA', 'NOMBRE_PARROQ', 'parroquia'];
+        for (let c of candidates) if (props[c]) return props[c];
+        return null;
     }
     
-    // Cargar GeoJSONs y construir capas interactivas
-    async function loadGeoData() {
+    function getParentMunicipioFromParroquia(props) {
+        const candidates = ['ADM2_NAME', 'NAME_2', 'MPIO_NOMBRE', 'municipio', 'MUNICIPIO'];
+        for (let c of candidates) if (props[c]) return props[c];
+        return null;
+    }
+    
+    // ======================= CARGAR GEOJSON =======================
+    async function loadData() {
         try {
-            const [munResp, parResp] = await Promise.all([
-                fetch(municipiosGeoJsonUrl),
-                fetch(parroquiasGeoJsonUrl)
-            ]);
-            if (!munResp.ok || !parResp.ok) throw new Error('Error cargando archivos GeoJSON');
-            let municipiosGeo = await munResp.json();
-            let parroquiasGeo = await parResp.json();
+            const [munRes, parRes] = await Promise.all([fetch(MUNI_URL), fetch(PARROQ_URL)]);
+            if (!munRes.ok) throw new Error(`Municipios HTTP ${munRes.status}`);
+            if (!parRes.ok) throw new Error(`Parroquias HTTP ${parRes.status}`);
             
-            // Filtrar solo municipios de Carabobo (ADM1_NAME === 'Carabobo')
-            const caraboboMunFeatures = municipiosGeo.features.filter(f => {
-                const adm1 = f.properties.ADM1_NAME || f.properties.NAME_1 || '';
-                return adm1.toLowerCase() === 'carabobo';
+            const municipiosJson = await munRes.json();
+            const parroquiasJson = await parRes.json();
+            
+            console.log("✅ GeoJSON cargados", municipiosJson.features.length, parroquiasJson.features.length);
+            console.log("Ejemplo propiedades municipio:", municipiosJson.features[0]?.properties);
+            console.log("Ejemplo propiedades parroquia:", parroquiasJson.features[0]?.properties);
+            
+            // Filtrar solo Carabobo (detectar campo de estado)
+            let caraboboMunis = municipiosJson.features.filter(f => {
+                const props = f.properties;
+                const estado = props.ADM1_NAME || props.NAME_1 || props.ESTADO || '';
+                return estado.toLowerCase().includes('carabobo');
             });
-            if (caraboboMunFeatures.length !== 14) console.warn(`Se encontraron ${caraboboMunFeatures.length} municipios, se esperaban 14. Ajuste posible.`);
-            const filteredGeo = { type: "FeatureCollection", features: caraboboMunFeatures };
+            if (caraboboMunis.length === 0) {
+                // fallback: si no encuentra, toma los primeros 14 sospechosos (pero muestra advertencia)
+                console.warn("No se detectó Carabobo, usando todos los municipios del archivo");
+                caraboboMunis = municipiosJson.features;
+            }
+            console.log(`Municipios de Carabobo: ${caraboboMunis.length}`);
             
-            // Crear capa de municipios
-            municipiosLayer = L.geoJSON(filteredGeo, {
-                style: {
-                    fillColor: '#3b82b6',
-                    color: '#ffffff',
-                    weight: 1.2,
-                    fillOpacity: 0.55,
-                    smoothFactor: 0.8
-                },
+            // Crear capa municipios
+            municipiosLayer = L.geoJSON({ type: "FeatureCollection", features: caraboboMunis }, {
+                style: { fillColor: '#3b82b6', color: '#fff', weight: 1.2, fillOpacity: 0.6 },
                 onEachFeature: (feature, layer) => {
-                    addHoverEffect(layer, feature);
-                    layer.on('click', () => onMunicipioClick(feature, layer));
+                    const munName = getMunicipioName(feature.properties);
+                    if (!munName) return;
+                    // Hover
+                    layer.on('mouseover', () => {
+                        if (currentMunId === munName) return;
+                        layer.setStyle({ weight: 3, color: '#ffcd94', fillOpacity: 0.8 });
+                    });
+                    layer.on('mouseout', () => {
+                        if (currentMunId === munName) return;
+                        layer.setStyle({ weight: 1.2, color: '#fff', fillOpacity: 0.6 });
+                    });
+                    layer.on('click', () => {
+                        // Resaltar municipio y oscurecer otros
+                        if (currentMunId === munName) return;
+                        currentMunId = munName;
+                        municipiosLayer.eachLayer(l => {
+                            const name = getMunicipioName(l.feature.properties);
+                            if (name === munName) l.setStyle({ fillColor: '#f4a261', weight: 3, fillOpacity: 0.85 });
+                            else l.setStyle({ fillColor: '#6c757d', fillOpacity: 0.25, weight: 1 });
+                        });
+                        // Resaltar parroquias
+                        if (parroquiasLayer) {
+                            parroquiasLayer.eachLayer(layerP => {
+                                const parentMun = getParentMunicipioFromParroquia(layerP.feature.properties);
+                                if (parentMun && parentMun.toLowerCase() === munName.toLowerCase()) {
+                                    layerP.setStyle({ fillColor: '#ffb347', weight: 2.5, fillOpacity: 0.85 });
+                                } else {
+                                    layerP.setStyle({ fillColor: '#4a5d6c', fillOpacity: 0.2, weight: 0.8 });
+                                }
+                            });
+                        }
+                        // Actualizar sidebar
+                        updateSidebar(munName);
+                        map.fitBounds(layer.getBounds(), { padding: [40,40] });
+                    });
                 }
             }).addTo(map);
             
-            // Crear capa de parroquias
-            parroquiasLayer = L.geoJSON(parroquiasGeo, {
-                style: {
-                    fillColor: '#2c6e49',
-                    color: '#d4e6d4',
-                    weight: 1,
-                    fillOpacity: 0.4
-                },
+            // Capa de parroquias
+            parroquiasLayer = L.geoJSON(parroquiasJson, {
+                style: { fillColor: '#2c6e49', color: '#cfe6cf', weight: 1, fillOpacity: 0.4 },
                 onEachFeature: (feature, layer) => {
-                    // opcional: interacción menor para parroquias
-                }
-            }).addTo(map);
-            
-            // Construir indice de parroquias por municipio (nombres)
-            parishByMunicipioMap = buildParishIndex(parroquiasGeo);
-            // asegurar nombres de municipios coincidan con electoralData
-            const munNamesFromMap = caraboboMunFeatures.map(f => f.properties.ADM2_NAME || f.properties.NAME_2);
-            // validar cobertura
-            for (let mun of Object.keys(electoralData)) {
-                if (!parishByMunicipioMap.has(mun)) {
-                    // intento fuzzy o añadir vacío
-                    let foundKey = Array.from(parishByMunicipioMap.keys()).find(k => k.toLowerCase().includes(mun.toLowerCase()) || mun.toLowerCase().includes(k.toLowerCase()));
-                    if (foundKey) {
-                        let parishes = parishByMunicipioMap.get(foundKey);
-                        parishByMunicipioMap.set(mun, parishes);
-                    } else {
-                        parishByMunicipioMap.set(mun, []);
+                    const parrName = getParroquiaName(feature.properties);
+                    const munParent = getParentMunicipioFromParroquia(feature.properties);
+                    if (munParent) {
+                        if (!parishByMunicipio.has(munParent)) parishByMunicipio.set(munParent, []);
+                        const list = parishByMunicipio.get(munParent);
+                        if (parrName && !list.includes(parrName)) list.push(parrName);
                     }
                 }
-            }
+            }).addTo(map);
             
-            // Además, asociar parroquias sobrantes con nombres correctos: limpieza
-            const allMunis = Object.keys(electoralData);
-            for (let m of allMunis) {
-                if (!parishByMunicipioMap.has(m)) parishByMunicipioMap.set(m, []);
-            }
-            // Ajustar casos manuales: por si algún municipio en geojson tiene nombre "Los Guayos" -> bien.
+            // Ordenar listas de parroquias
+            for (let [k, v] of parishByMunicipio.entries()) parishByMunicipio.set(k, v.sort());
+            
+            // Asegurar que todos los municipios tengan al menos lista vacía
+            Object.keys(electoralData).forEach(mun => {
+                if (!parishByMunicipio.has(mun)) parishByMunicipio.set(mun, []);
+            });
             
             document.getElementById('loaderMsg').style.display = 'none';
-            // Ajuste de bounds a Carabobo
-            const caraboboBounds = L.latLngBounds();
-            municipiosLayer.eachLayer(layer => {
-                caraboboBounds.extend(layer.getBounds());
-            });
-            if (caraboboBounds.isValid()) map.fitBounds(caraboboBounds, { padding: [35,35] });
+            // Ajustar vista a Carabobo
+            if (municipiosLayer.getBounds().isValid()) map.fitBounds(municipiosLayer.getBounds(), { padding: [30,30] });
             
-            // Click en mapa vacío -> resetear todo
-            map.on('click', function(e) {
-                if (currentSelectedMunId) {
-                    // Resetear completamente estilos
-                    resetMunicipiosStyles();
-                    resetParroquiasStyles();
-                    currentSelectedMunId = null;
-                    currentMunName = null;
-                    closeSidebar();
+            // Click en mapa vacío: resetear todo
+            map.on('click', (e) => {
+                if (currentMunId) {
+                    resetMapStyles();
+                    currentMunId = null;
+                    sidebar.classList.add('hidden');
                 }
             });
             
         } catch (err) {
+            showError(`Error crítico: ${err.message}. Verifica las URLs y CORS.`);
             console.error(err);
-            document.getElementById('loaderMsg').innerHTML = 'Error cargando datos, verifica conexión.';
         }
     }
     
-    // iniciamos carga
-    loadGeoData();
-    
-    // añadir control de atributos responsivo y hover adicional para parroquias opcional.
-    // reajustes con timer
-    window.addEventListener('resize', () => {
-        if (sidebar.classList.contains('hidden') === false && window.innerWidth < 700) {
-            // se mantiene legible
+    function resetMapStyles() {
+        if (municipiosLayer) {
+            municipiosLayer.eachLayer(l => l.setStyle({ fillColor: '#3b82b6', fillOpacity: 0.6, weight: 1.2, color: '#fff' }));
         }
-    });
-    
-    // pequeña mejora en popup / dashboard con efecto glass, el sidebar ya lo es.
-    // extra: tooltip municipal
-    if (municipiosLayer) {
-        // esperar carga - ya se renderiza posteriormente pero se maneja en loadGeoData
+        if (parroquiasLayer) {
+            parroquiasLayer.eachLayer(l => l.setStyle({ fillColor: '#2c6e49', fillOpacity: 0.4, weight: 1, color: '#cfe6cf' }));
+        }
     }
     
-    // Agregar info para demostrar que soporta expansión futura.
-    console.log("Mapa electoral Carabobo listo | Estrategia Concertación Carabobo");
+    function updateSidebar(munName) {
+        const data = electoralData[munName];
+        if (!data) {
+            sidebarContent.innerHTML = `<div style="color:red;">Datos electorales no encontrados para ${munName}</div>`;
+            sidebar.classList.remove('hidden');
+            return;
+        }
+        const flag = flagUrls[munName] || '';
+        const parishes = parishByMunicipio.get(munName) || [];
+        const html = `
+            <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem;">
+                ${flag ? `<img src="${flag}" style="width:65px; height:45px; object-fit:cover; border-radius:12px;">` : ''}
+                <h2 style="color:#0a2b3e;">${munName}</h2>
+            </div>
+            <div style="background:#eef3fc; display:inline-block; padding:4px 12px; border-radius:40px;">🏛️ Capital: ${data.capital}</div>
+            <div class="stat-card"><span>🗳️ Mesas</span><strong>${data.mesas.toLocaleString()}</strong></div>
+            <div class="stat-card"><span>👥 Electores</span><strong>${data.electores.toLocaleString()}</strong></div>
+            <div class="parishes-list"><h4>📌 Parroquias (${parishes.length})</h4>${parishes.map(p => `<div>📍 ${p}</div>`).join('') || '<div>No se encontraron parroquias asociadas</div>'}</div>
+            <div style="display:flex; justify-content:center; margin-top:1rem;"><img src="${LOGO_URL}" style="height:50px;"></div>
+        `;
+        sidebarContent.innerHTML = html;
+        sidebar.classList.remove('hidden');
+    }
+    
+    loadData();
 </script>
 </body>
 </html>
