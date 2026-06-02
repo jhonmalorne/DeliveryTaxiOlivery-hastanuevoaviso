@@ -1,293 +1,2256 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Concertación Carabobo | Mapa Electoral (Depuración incluida)</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', system-ui, sans-serif; overflow: hidden; height: 100vh; }
-        .header {
-            position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
-            background: rgba(10, 35, 65, 0.92); backdrop-filter: blur(12px);
-            padding: 0.8rem 2rem; display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-        .logo-concertacion { height: 48px; }
-        .title { color: white; font-weight: 600; background: linear-gradient(135deg, #FFF, #B8E1FC); background-clip: text; -webkit-background-clip: text; color: transparent; }
-        #map { height: 100vh; width: 100%; z-index: 1; }
-        .sidebar {
-            position: absolute; top: 85px; right: 20px; bottom: 20px; width: 360px;
-            background: rgba(255,255,255,0.98); border-radius: 28px; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.35);
-            z-index: 1000; overflow-y: auto; transition: transform 0.3s; font-family: 'Inter', sans-serif;
-        }
-        .sidebar.hidden { transform: translateX(420px); pointer-events: none; }
-        .sidebar-content { padding: 1.5rem; }
-        .close-sidebar {
-            position: absolute; top: 18px; right: 20px; background: #eef2f5; border: none;
-            width: 32px; height: 32px; border-radius: 40px; cursor: pointer; font-weight: bold;
-        }
-        .stat-card { background: #f8fafd; border-radius: 20px; padding: 0.8rem; margin: 1rem 0; display: flex; justify-content: space-between; }
-        .parishes-list { background: white; border-radius: 24px; padding: 0.8rem; max-height: 200px; overflow-y: auto; margin: 1rem 0; }
-        .loader {
-            position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: white;
-            padding: 8px 16px; border-radius: 40px; z-index: 1200; font-size: 13px;
-        }
-        .error-banner {
-            position: absolute; top: 80px; left: 20px; right: 20px; background: #dc2626; color: white;
-            padding: 12px; border-radius: 16px; z-index: 1100; text-align: center; font-weight: 500;
-        }
-        @media (max-width: 700px) { .sidebar { width: 85%; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Centro Estratégico Electoral — Carabobo 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:ital,wght@0,100..900;1,100..900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  /* ============================================================
+     VARIABLES & RESET
+  ============================================================ */
+  :root {
+    --c-bg:        #030a12;
+    --c-bg2:       #060f1c;
+    --c-panel:     rgba(6, 18, 36, 0.88);
+    --c-border:    rgba(0, 200, 255, 0.18);
+    --c-accent1:   #00c8ff;   /* cyan institucional */
+    --c-accent2:   #00ff99;   /* verde institucional */
+    --c-accent3:   #0055ff;   /* azul profundo */
+    --c-warn:      #ff6b35;
+    --c-text:      #c8e6f5;
+    --c-text2:     #5a8fa8;
+    --c-glow1:     rgba(0,200,255,0.35);
+    --c-glow2:     rgba(0,255,153,0.25);
+    --sidebar-w:   380px;
+    --header-h:    64px;
+    --font-hud:    'Share Tech Mono', monospace;
+    --font-ui:     'Exo 2', sans-serif;
+    --font-head:   'Rajdhani', sans-serif;
+    --radius:      8px;
+    --transition:  0.38s cubic-bezier(.4,0,.2,1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-ui);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--c-accent1); border-radius: 2px; }
+
+  /* ============================================================
+     LOADING SCREEN
+  ============================================================ */
+  #loading-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--c-bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 28px;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+  }
+  #loading-screen.hidden { opacity: 0; visibility: hidden; }
+
+  .load-logo {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    border: 2px solid var(--c-accent1);
+    box-shadow: 0 0 40px var(--c-glow1), 0 0 80px rgba(0,200,255,0.15);
+    animation: pulseRing 2s infinite ease-in-out;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .load-logo img { width: 80%; height: 80%; object-fit: contain; }
+
+  .load-title {
+    font-family: var(--font-head);
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--c-accent1);
+    text-shadow: 0 0 20px var(--c-glow1);
+  }
+  .load-sub {
+    font-family: var(--font-hud);
+    font-size: 0.7rem;
+    color: var(--c-text2);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+
+  .load-bar-wrap {
+    width: 260px; height: 3px;
+    background: rgba(0,200,255,0.1);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .load-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--c-accent3), var(--c-accent1), var(--c-accent2));
+    border-radius: 99px;
+    animation: loadProgress 2.2s ease-out forwards;
+  }
+  .load-status {
+    font-family: var(--font-hud);
+    font-size: 0.65rem;
+    color: var(--c-accent2);
+    letter-spacing: 0.2em;
+    animation: blink 1s infinite;
+  }
+
+  @keyframes loadProgress {
+    0%   { width: 0%; }
+    60%  { width: 72%; }
+    100% { width: 100%; }
+  }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  @keyframes pulseRing {
+    0%,100% { box-shadow: 0 0 30px var(--c-glow1), 0 0 60px rgba(0,200,255,0.1); }
+    50%      { box-shadow: 0 0 50px var(--c-glow1), 0 0 100px rgba(0,200,255,0.25); }
+  }
+
+  /* ============================================================
+     LAYOUT
+  ============================================================ */
+  #app {
+    display: grid;
+    grid-template-rows: var(--header-h) 1fr;
+    grid-template-columns: 1fr var(--sidebar-w);
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ============================================================
+     HEADER
+  ============================================================ */
+  #header {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px 0 16px;
+    background: rgba(3,10,18,0.92);
+    border-bottom: 1px solid var(--c-border);
+    backdrop-filter: blur(16px);
+    z-index: 500;
+    position: relative;
+  }
+  #header::after {
+    content:'';
+    position:absolute; bottom:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, var(--c-accent1), var(--c-accent2), transparent);
+    opacity: 0.6;
+  }
+
+  .hdr-left {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .hdr-logo {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0,200,255,0.5);
+    box-shadow: 0 0 16px var(--c-glow1);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .hdr-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+  .hdr-titles {}
+  .hdr-main {
+    font-family: var(--font-head);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--c-accent1);
+    line-height: 1.1;
+    text-shadow: 0 0 12px var(--c-glow1);
+  }
+  .hdr-sub {
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-text2);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+
+  .hdr-center {
+    display: flex; align-items: center; gap: 24px;
+    flex: 1; justify-content: center;
+  }
+
+  .stat-pill {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 4px 16px;
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    background: rgba(0,200,255,0.04);
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: border-color var(--transition);
+  }
+  .stat-pill:hover { border-color: var(--c-accent1); }
+  .stat-pill::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, var(--c-accent1), transparent);
+  }
+  .stat-pill .val {
+    font-family: var(--font-hud);
+    font-size: 0.95rem;
+    color: var(--c-accent2);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .stat-pill .lbl {
+    font-family: var(--font-hud);
+    font-size: 0.52rem;
+    color: var(--c-text2);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .hdr-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--c-accent2);
+    box-shadow: 0 0 8px var(--c-accent2);
+    animation: livePulse 1.5s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes livePulse {
+    0%,100%{transform:scale(1);opacity:1;}
+    50%{transform:scale(1.4);opacity:0.6;}
+  }
+
+  #clock {
+    font-family: var(--font-hud);
+    font-size: 0.8rem;
+    color: var(--c-accent1);
+    letter-spacing: 0.1em;
+  }
+
+  .layer-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    background: rgba(0,200,255,0.06);
+    color: var(--c-text);
+    font-family: var(--font-hud);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .layer-btn:hover {
+    background: rgba(0,200,255,0.15);
+    border-color: var(--c-accent1);
+    color: var(--c-accent1);
+    box-shadow: 0 0 12px var(--c-glow1);
+  }
+
+  #sidebar-toggle {
+    display: none;
+    align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    background: rgba(0,200,255,0.06);
+    color: var(--c-accent1);
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all var(--transition);
+  }
+  #sidebar-toggle:hover { background: rgba(0,200,255,0.15); }
+
+  /* ============================================================
+     MAP
+  ============================================================ */
+  #map-container {
+    grid-column: 1;
+    grid-row: 2;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #map {
+    width: 100%; height: 100%;
+    background: var(--c-bg) !important;
+  }
+
+  /* Override Leaflet defaults */
+  .leaflet-container {
+    background: #030a12 !important;
+    font-family: var(--font-ui) !important;
+  }
+  .leaflet-control-attribution { display: none !important; }
+  .leaflet-control-zoom {
+    border: 1px solid var(--c-border) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5) !important;
+    overflow: hidden !important;
+  }
+  .leaflet-control-zoom a {
+    background: rgba(6,18,36,0.92) !important;
+    color: var(--c-accent1) !important;
+    border-bottom: 1px solid var(--c-border) !important;
+    font-size: 16px !important;
+    backdrop-filter: blur(10px) !important;
+    transition: background var(--transition) !important;
+  }
+  .leaflet-control-zoom a:hover {
+    background: rgba(0,200,255,0.15) !important;
+    color: #fff !important;
+  }
+
+  /* Corner HUD elements */
+  .map-hud-corner {
+    position: absolute; z-index: 400;
+    pointer-events: none;
+  }
+  .map-hud-corner.tl { top:12px; left:12px; }
+  .map-hud-corner.tr { top:12px; right:12px; }
+  .map-hud-corner.bl { bottom:12px; left:12px; }
+  .map-hud-corner.br { bottom:12px; right:12px; }
+
+  .hud-tag {
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-text2);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border: 1px solid rgba(0,200,255,0.12);
+    border-radius: 2px;
+    background: rgba(3,10,18,0.7);
+    backdrop-filter: blur(6px);
+  }
+
+  .coord-display {
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-accent2);
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    background: rgba(3,10,18,0.7);
+    border: 1px solid rgba(0,255,153,0.15);
+    border-radius: 2px;
+    backdrop-filter: blur(6px);
+  }
+
+  /* Scanline overlay */
+  #scanline {
+    position: absolute; inset: 0; z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,200,255,0.012) 3px,
+      rgba(0,200,255,0.012) 4px
+    );
+    animation: scanMove 8s linear infinite;
+  }
+  @keyframes scanMove {
+    0%   { background-position: 0 0; }
+    100% { background-position: 0 400px; }
+  }
+
+  /* Search box on map */
+  #search-box {
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 450;
+    width: 300px;
+  }
+  #search-input {
+    width: 100%;
+    padding: 9px 14px 9px 36px;
+    background: rgba(6,18,36,0.9);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    color: var(--c-text);
+    font-family: var(--font-hud);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    outline: none;
+    backdrop-filter: blur(12px);
+    transition: all var(--transition);
+  }
+  #search-input::placeholder { color: var(--c-text2); }
+  #search-input:focus {
+    border-color: var(--c-accent1);
+    box-shadow: 0 0 16px var(--c-glow1);
+  }
+  .search-icon {
+    position: absolute; top:50%; left:10px;
+    transform: translateY(-50%);
+    color: var(--c-accent1); font-size: 0.9rem;
+    pointer-events: none;
+  }
+  #search-results {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: rgba(6,18,36,0.95);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    overflow: hidden;
+    display: none;
+    backdrop-filter: blur(12px);
+  }
+  .search-item {
+    padding: 8px 14px;
+    font-family: var(--font-hud);
+    font-size: 0.7rem;
+    color: var(--c-text);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0,200,255,0.06);
+    transition: background var(--transition);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .search-item:hover { background: rgba(0,200,255,0.1); color: var(--c-accent1); }
+  .search-item .type-tag {
+    font-size: 0.55rem; letter-spacing: 0.15em;
+    color: var(--c-text2);
+    background: rgba(0,200,255,0.08);
+    padding: 1px 5px; border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ============================================================
+     SIDEBAR
+  ============================================================ */
+  #sidebar {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex; flex-direction: column;
+    background: var(--c-panel);
+    border-left: 1px solid var(--c-border);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    position: relative;
+    z-index: 400;
+    transition: transform var(--transition);
+  }
+  #sidebar::before {
+    content:'';
+    position:absolute; top:0; left:0; width:1px; height:100%;
+    background: linear-gradient(180deg, transparent, var(--c-accent1), var(--c-accent2), transparent);
+    opacity: 0.4;
+  }
+
+  /* Sidebar tabs */
+  .sb-tabs {
+    display: flex; flex-shrink: 0;
+    border-bottom: 1px solid var(--c-border);
+    background: rgba(3,10,18,0.5);
+  }
+  .sb-tab {
+    flex: 1; padding: 10px 4px;
+    font-family: var(--font-hud);
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--c-text2);
+    cursor: pointer;
+    text-align: center;
+    border-right: 1px solid var(--c-border);
+    transition: all var(--transition);
+    position: relative;
+  }
+  .sb-tab:last-child { border-right: none; }
+  .sb-tab.active {
+    color: var(--c-accent1);
+    background: rgba(0,200,255,0.06);
+  }
+  .sb-tab.active::after {
+    content:'';
+    position:absolute; bottom:0; left:10%; right:10%; height:1px;
+    background: var(--c-accent1);
+    box-shadow: 0 0 6px var(--c-accent1);
+  }
+  .sb-tab:hover:not(.active) { color: var(--c-text); background: rgba(0,200,255,0.03); }
+
+  /* Tab panels */
+  .sb-panel { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+  .sb-panel.active { display: flex; }
+
+  /* ---- PANEL: ESTADO ---- */
+  .estado-header {
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(0,255,153,0.03));
+    border-bottom: 1px solid var(--c-border);
+    flex-shrink: 0;
+  }
+
+  .flag-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+  }
+  .flag-img {
+    width: 54px; height: 34px; object-fit: cover;
+    border: 1px solid var(--c-border);
+    border-radius: 3px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+  .estado-name {
+    font-family: var(--font-head);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--c-accent1);
+    line-height: 1;
+    text-shadow: 0 0 16px var(--c-glow1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .estado-subtitle {
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-text2);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px 16px;
+    flex-shrink: 0;
+  }
+  .metric-card {
+    background: rgba(0,200,255,0.04);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition);
+  }
+  .metric-card:hover {
+    border-color: rgba(0,200,255,0.4);
+    background: rgba(0,200,255,0.08);
+    box-shadow: 0 0 16px rgba(0,0,0,0.3);
+  }
+  .metric-card::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, var(--c-accent1), transparent);
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+  .metric-card:hover::before { opacity: 1; }
+  .metric-icon {
+    font-size: 1.1rem; margin-bottom: 4px; display: block;
+  }
+  .metric-val {
+    font-family: var(--font-hud);
+    font-size: 1.05rem;
+    color: var(--c-accent2);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .metric-lbl {
+    font-family: var(--font-hud);
+    font-size: 0.55rem;
+    color: var(--c-text2);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* Municipality list */
+  .section-title {
+    padding: 10px 16px 6px;
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-text2);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(0,200,255,0.06);
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content:'';
+    width: 12px; height: 1px;
+    background: var(--c-accent1);
+  }
+
+  .muni-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px 12px;
+  }
+  .muni-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all var(--transition);
+    border: 1px solid transparent;
+    margin-bottom: 3px;
+    position: relative;
+  }
+  .muni-item:hover, .muni-item.active {
+    background: rgba(0,200,255,0.07);
+    border-color: rgba(0,200,255,0.2);
+  }
+  .muni-item.active { border-color: var(--c-accent1); }
+  .muni-flag {
+    width: 32px; height: 20px; object-fit: cover;
+    border: 1px solid rgba(0,200,255,0.2);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .muni-info { flex: 1; min-width: 0; }
+  .muni-name {
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--c-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .muni-stats {
+    font-family: var(--font-hud);
+    font-size: 0.58rem;
+    color: var(--c-text2);
+    letter-spacing: 0.08em;
+  }
+  .muni-bar-wrap {
+    width: 36px; height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .muni-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--c-accent3), var(--c-accent1));
+    border-radius: 99px;
+    transition: width 0.8s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* ---- PANEL: MUNICIPIO ---- */
+  .muni-detail-header {
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(0,200,255,0.07), rgba(0,255,153,0.04));
+    border-bottom: 1px solid var(--c-border);
+    flex-shrink: 0;
+  }
+  .muni-detail-flag-row {
+    display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px;
+  }
+  .muni-detail-flag {
+    width: 60px; height: 38px; object-fit: cover;
+    border: 1px solid var(--c-border);
+    border-radius: 3px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  .muni-detail-name {
+    font-family: var(--font-head);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--c-accent1);
+    text-shadow: 0 0 12px var(--c-glow1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .muni-detail-cap {
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-text2);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .muni-detail-coord {
+    font-family: var(--font-hud);
+    font-size: 0.58rem;
+    color: rgba(0,255,153,0.6);
+    margin-top: 2px;
+  }
+
+  .progress-section {
+    padding: 10px 16px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--c-border);
+  }
+  .progress-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px;
+  }
+  .progress-label {
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-text2);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .progress-val {
+    font-family: var(--font-hud);
+    font-size: 0.7rem;
+    color: var(--c-accent2);
+  }
+  .progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 1.2s cubic-bezier(.4,0,.2,1);
+  }
+  .fill-cyan { background: linear-gradient(90deg, var(--c-accent3), var(--c-accent1)); }
+  .fill-green { background: linear-gradient(90deg, #005f44, var(--c-accent2)); }
+
+  /* Parroquia list */
+  .parroquia-list {
+    flex: 1; overflow-y: auto;
+    padding: 6px 8px 12px;
+  }
+  .parroquia-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    transition: all var(--transition);
+    cursor: default;
+  }
+  .parroquia-item:hover {
+    background: rgba(0,200,255,0.05);
+    border-color: rgba(0,200,255,0.15);
+  }
+  .parroquia-name {
+    font-family: var(--font-ui);
+    font-size: 0.76rem;
+    color: var(--c-text);
+    flex: 1;
+  }
+  .parroquia-name::before {
+    content: '▸ ';
+    color: var(--c-accent1);
+    font-size: 0.6rem;
+  }
+  .parroquia-badge {
+    font-family: var(--font-hud);
+    font-size: 0.55rem;
+    color: var(--c-text2);
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    background: rgba(0,200,255,0.06);
+    border-radius: 2px;
+  }
+
+  /* Back button */
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    font-family: var(--font-hud);
+    font-size: 0.62rem;
+    color: var(--c-text2);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-bottom: 1px solid var(--c-border);
+    transition: all var(--transition);
+    flex-shrink: 0;
+  }
+  .back-btn:hover { color: var(--c-accent1); background: rgba(0,200,255,0.04); }
+
+  /* ---- PANEL: ANÁLISIS ---- */
+  .analysis-content {
+    padding: 12px 16px;
+    flex: 1; overflow-y: auto;
+  }
+
+  .rank-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,200,255,0.08);
+    margin-bottom: 6px;
+    background: rgba(0,200,255,0.03);
+    transition: all var(--transition);
+  }
+  .rank-item:hover { border-color: rgba(0,200,255,0.2); background: rgba(0,200,255,0.07); }
+  .rank-num {
+    font-family: var(--font-hud);
+    font-size: 0.7rem;
+    color: var(--c-accent1);
+    width: 20px;
+    text-align: right;
+  }
+  .rank-body { flex: 1; min-width: 0; }
+  .rank-name {
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--c-text);
+  }
+  .rank-bar-wrap {
+    height: 3px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 99px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .rank-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--c-accent3), var(--c-accent1));
+    border-radius: 99px;
+  }
+  .rank-val {
+    font-family: var(--font-hud);
+    font-size: 0.62rem;
+    color: var(--c-accent2);
+  }
+
+  .analysis-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--c-border), transparent);
+    margin: 16px 0;
+  }
+
+  .chart-title {
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-text2);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chart-title::before {
+    content:'';
+    width:8px; height:1px;
+    background: var(--c-accent2);
+  }
+
+  /* Mini donut chart via conic-gradient */
+  .donut-wrap {
+    display: flex; align-items: center; gap: 16px;
+    padding: 8px 0;
+  }
+  .donut {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .donut-hole {
+    position:absolute; inset:12px;
+    border-radius:50%;
+    background: var(--c-bg2);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    color: var(--c-accent1);
+    text-align:center;
+    letter-spacing:0.05em;
+    line-height:1.2;
+  }
+  .donut-legend { flex:1; }
+  .legend-item {
+    display:flex; align-items:center; gap:6px;
+    margin-bottom: 4px;
+    font-family: var(--font-hud);
+    font-size: 0.62rem;
+    color: var(--c-text2);
+  }
+  .legend-dot {
+    width:6px; height:6px; border-radius:50%; flex-shrink:0;
+  }
+
+  /* ============================================================
+     TOOLTIP
+  ============================================================ */
+  .map-tooltip {
+    background: rgba(6,18,36,0.95) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    color: var(--c-text) !important;
+    font-family: var(--font-hud) !important;
+    font-size: 0.7rem !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5), 0 0 12px var(--c-glow1) !important;
+    pointer-events: none !important;
+  }
+  .map-tooltip::before { display: none !important; }
+  .tt-name {
+    font-family: var(--font-head) !important;
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    color: var(--c-accent1) !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+  }
+  .tt-stat { color: var(--c-text2) !important; margin-top: 2px !important; }
+  .tt-stat span { color: var(--c-accent2) !important; }
+
+  /* ============================================================
+     PARTICLES
+  ============================================================ */
+  #particles-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  /* ============================================================
+     LAYER CONTROL MODAL
+  ============================================================ */
+  #layer-modal {
+    display: none;
+    position: fixed;
+    top: calc(var(--header-h) + 8px);
+    right: 180px;
+    z-index: 600;
+    background: rgba(6,18,36,0.96);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 12px;
+    backdrop-filter: blur(16px);
+    width: 200px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 20px var(--c-glow1);
+    animation: fadeInDown 0.25s ease;
+  }
+  #layer-modal.visible { display: block; }
+  @keyframes fadeInDown {
+    from { opacity:0; transform:translateY(-8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .layer-option {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    transition: background var(--transition);
+    font-family: var(--font-hud);
+    font-size: 0.65rem;
+    color: var(--c-text2);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+  .layer-option:hover { background: rgba(0,200,255,0.07); color: var(--c-text); }
+  .layer-option.active { color: var(--c-accent1); border-color: rgba(0,200,255,0.2); background: rgba(0,200,255,0.06); }
+  .toggle-pill {
+    width: 28px; height: 14px;
+    border-radius: 99px;
+    background: rgba(0,200,255,0.12);
+    position: relative;
+    transition: background var(--transition);
+  }
+  .toggle-pill.on { background: var(--c-accent1); }
+  .toggle-knob {
+    position:absolute; top:2px; left:2px;
+    width:10px; height:10px;
+    border-radius:50%; background:#fff;
+    transition: left var(--transition);
+  }
+  .toggle-pill.on .toggle-knob { left:16px; }
+
+  /* ============================================================
+     RESPONSIVE
+  ============================================================ */
+  @media (max-width: 900px) {
+    :root { --sidebar-w: 320px; }
+  }
+  @media (max-width: 700px) {
+    :root { --sidebar-w: 0px; --header-h: 56px; }
+    #app { grid-template-columns: 1fr; }
+    #sidebar {
+      position: fixed;
+      top: var(--header-h); right: 0; bottom: 0;
+      width: 320px;
+      transform: translateX(100%);
+      z-index: 800;
+    }
+    #sidebar.open { transform: translateX(0); }
+    #sidebar-toggle { display: flex !important; }
+    .hdr-center { display: none; }
+    #search-box { width: 200px; }
+    .stat-pill { display: none; }
+  }
+  @media (max-width: 400px) {
+    .hdr-main { font-size: 0.85rem; }
+    .hdr-logo { width: 32px; height: 32px; }
+  }
+
+  /* ============================================================
+     MISC ANIMATIONS
+  ============================================================ */
+  @keyframes fadeIn {
+    from { opacity:0; transform:translateY(6px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+  @keyframes countUp {
+    from { opacity:0; }
+    to   { opacity:1; }
+  }
+
+  .pulse-glow {
+    animation: pulseGlowAnim 2s infinite;
+  }
+  @keyframes pulseGlowAnim {
+    0%,100% { box-shadow: 0 0 8px var(--c-glow1); }
+    50%      { box-shadow: 0 0 20px var(--c-glow1), 0 0 40px rgba(0,200,255,0.15); }
+  }
+
+  /* Animated border gradient */
+  @keyframes borderRotate {
+    from { background-position: 0% 50%; }
+    to   { background-position: 100% 50%; }
+  }
+
+  /* Active municipality ring */
+  .active-muni-ring {
+    position: absolute; inset:-4px;
+    border-radius: 50%;
+    border: 2px solid var(--c-accent1);
+    animation: ringPulse 1.5s infinite;
+    pointer-events: none;
+  }
+  @keyframes ringPulse {
+    0%  { transform:scale(1); opacity:0.8; }
+    100%{ transform:scale(1.15); opacity:0; }
+  }
+
+  /* Coordinate readout animation */
+  @keyframes coordFlash {
+    0%,100%{opacity:1;} 50%{opacity:0.5;}
+  }
+  .coord-updating { animation: coordFlash 0.3s ease; }
+</style>
 </head>
 <body>
-<div class="header">
-    <div class="logo-container">
-        <img class="logo-concertacion" src="https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/logo_conconcertacion_carabobo-removebg-preview.png" alt="Concertación">
-        <span class="title">Concertación Carabobo · Estrategia Electoral</span>
+
+<!-- Particles -->
+<canvas id="particles-canvas"></canvas>
+
+<!-- Loading Screen -->
+<div id="loading-screen">
+  <div class="load-logo">
+    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo">
+  </div>
+  <div>
+    <div class="load-title">Carabobo 2026</div>
+    <div class="load-sub">Centro Estratégico Electoral · Inicializando Sistema</div>
+  </div>
+  <div class="load-bar-wrap">
+    <div class="load-bar"></div>
+  </div>
+  <div class="load-status">▶ CARGANDO INTELIGENCIA TERRITORIAL...</div>
+</div>
+
+<!-- App Shell -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="hdr-left">
+      <div class="hdr-logo pulse-glow">
+        <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Concertación Carabobo">
+      </div>
+      <div class="hdr-titles">
+        <div class="hdr-main">Centro Estratégico Electoral — Carabobo</div>
+        <div class="hdr-sub">Sistema de Inteligencia Territorial · Carabobo 2026</div>
+      </div>
     </div>
+
+    <div class="hdr-center">
+      <div class="stat-pill">
+        <div class="val" id="hdr-electores">1,663,942</div>
+        <div class="lbl">Electores</div>
+      </div>
+      <div class="stat-pill">
+        <div class="val" id="hdr-mesas">2,059</div>
+        <div class="lbl">Mesas</div>
+      </div>
+      <div class="stat-pill">
+        <div class="val">14</div>
+        <div class="lbl">Municipios</div>
+      </div>
+    </div>
+
+    <div class="hdr-right">
+      <div class="live-dot"></div>
+      <div id="clock">00:00:00</div>
+      <button class="layer-btn" id="layer-toggle-btn" onclick="toggleLayerModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+          <polyline points="2 17 12 22 22 17"/>
+          <polyline points="2 12 12 17 22 12"/>
+        </svg>
+        CAPAS
+      </button>
+      <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    </div>
+  </header>
+
+  <!-- MAP -->
+  <div id="map-container">
+    <div id="scanline"></div>
+    <div id="map"></div>
+
+    <!-- HUD corners -->
+    <div class="map-hud-corner tl">
+      <div class="hud-tag">CARABOBO · VEN · 2026</div>
+    </div>
+    <div class="map-hud-corner tr">
+      <div class="hud-tag" id="zoom-level">ZOOM: —</div>
+    </div>
+    <div class="map-hud-corner bl">
+      <div class="coord-display" id="coord-display">LAT: — | LNG: —</div>
+    </div>
+    <div class="map-hud-corner br">
+      <div class="hud-tag">GIS ELECTORAL v2.1</div>
+    </div>
+
+    <!-- Search -->
+    <div id="search-box">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-input" placeholder="Buscar municipio o parroquia...">
+      <div id="search-results"></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sb-tabs">
+      <div class="sb-tab active" onclick="switchTab('estado')">ESTADO</div>
+      <div class="sb-tab" onclick="switchTab('municipio')">MUNICIPIO</div>
+      <div class="sb-tab" onclick="switchTab('analisis')">ANÁLISIS</div>
+    </div>
+
+    <!-- TAB: ESTADO -->
+    <div class="sb-panel active" id="tab-estado">
+      <div class="estado-header">
+        <div class="flag-row">
+          <img class="flag-img" src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/bandera%20de%20carabobo.png?raw=true" alt="Bandera Carabobo">
+          <div>
+            <div class="estado-name">Carabobo</div>
+            <div class="estado-subtitle">Venezuela · Estado · 2026</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-icon">🗳️</span>
+          <div class="metric-val" id="m-electores">1,663,942</div>
+          <div class="metric-lbl">Electores Totales</div>
+        </div>
+        <div class="metric-card">
+          <span class="metric-icon">📋</span>
+          <div class="metric-val" id="m-mesas">2,059</div>
+          <div class="metric-lbl">Mesas Totales</div>
+        </div>
+        <div class="metric-card">
+          <span class="metric-icon">🏛️</span>
+          <div class="metric-val">14</div>
+          <div class="metric-lbl">Municipios</div>
+        </div>
+        <div class="metric-card">
+          <span class="metric-icon">📍</span>
+          <div class="metric-val">57</div>
+          <div class="metric-lbl">Parroquias</div>
+        </div>
+      </div>
+
+      <div class="section-title">MUNICIPIOS DEL ESTADO</div>
+      <div class="muni-list" id="muni-list-sidebar"></div>
+    </div>
+
+    <!-- TAB: MUNICIPIO -->
+    <div class="sb-panel" id="tab-municipio">
+      <div class="back-btn" onclick="backToEstado()">
+        ← VOLVER AL ESTADO
+      </div>
+      <div id="muni-detail-content">
+        <div style="padding:40px 16px; text-align:center; color:var(--c-text2); font-family:var(--font-hud); font-size:0.7rem; letter-spacing:0.15em;">
+          SELECCIONA UN MUNICIPIO EN EL MAPA
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ANÁLISIS -->
+    <div class="sb-panel" id="tab-analisis">
+      <div class="analysis-content">
+        <div class="chart-title">RANKING POR ELECTORES</div>
+        <div id="ranking-list"></div>
+
+        <div class="analysis-divider"></div>
+
+        <div class="chart-title">DISTRIBUCIÓN TERRITORIAL</div>
+        <div class="donut-wrap">
+          <div class="donut" id="donut-chart"></div>
+          <div class="donut-legend" id="donut-legend"></div>
+        </div>
+
+        <div class="analysis-divider"></div>
+
+        <div class="chart-title">DENSIDAD ELECTORAL</div>
+        <div id="density-bars"></div>
+      </div>
+    </div>
+  </aside>
 </div>
-<div id="map"></div>
-<div id="sidebarPanel" class="sidebar hidden">
-    <button class="close-sidebar" id="closeSidebarBtn">✕</button>
-    <div class="sidebar-content" id="sidebarDynamic">Selecciona un municipio</div>
+
+<!-- Layer Modal -->
+<div id="layer-modal">
+  <div style="font-family:var(--font-hud);font-size:0.58rem;color:var(--c-text2);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;padding:0 2px;">
+    CAPAS ACTIVAS
+  </div>
+  <div class="layer-option active" id="layer-municipios" onclick="toggleLayer('municipios')">
+    <span>Municipios</span>
+    <div class="toggle-pill on" id="pill-municipios"><div class="toggle-knob"></div></div>
+  </div>
+  <div class="layer-option active" id="layer-parroquias" onclick="toggleLayer('parroquias')">
+    <span>Parroquias</span>
+    <div class="toggle-pill on" id="pill-parroquias"><div class="toggle-knob"></div></div>
+  </div>
+  <div class="layer-option active" id="layer-heatmap" onclick="toggleLayer('heatmap')">
+    <span>Calor Electoral</span>
+    <div class="toggle-pill on" id="pill-heatmap"><div class="toggle-knob"></div></div>
+  </div>
 </div>
-<div class="loader" id="loaderMsg">Cargando datos geográficos...</div>
 
 <script>
-    // ======================= CONFIGURACIÓN =======================
-    const MUNI_URL = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/20fa810cbe0cf9a47bf6ea735241492e515fd0b6/ven_admin2.json";
-    const PARROQ_URL = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/2bcdf9a99688ba0458d1796b8465dcb0d2f42b61/parroquias_carabobo.geojson.json";
-    
-    // Datos electorales (proporcionados por ti)
-    const electoralData = {
-        "Valencia": { mesas: 742, electores: 613670, capital: "Valencia", centro: [10.153985, -67.988735] },
-        "Diego Ibarra": { mesas: 90, electores: 71951, capital: "Mariara", centro: [10.288812, -67.721095] },
-        "Carlos Arvelo": { mesas: 147, electores: 107312, capital: "Güigüe", centro: [10.083036, -67.780881] },
-        "Guacara": { mesas: 153, electores: 131072, capital: "Guacara", centro: [10.263974, -67.890448] },
-        "Juan José Mora": { mesas: 78, electores: 53965, capital: "Morón", centro: [10.491015, -68.198705] },
-        "Libertador": { mesas: 159, electores: 124901, capital: "Tocuyito", centro: [10.015869, -68.154266] },
-        "Los Guayos": { mesas: 131, electores: 106124, capital: "Los Guayos", centro: [10.172879, -67.925227] },
-        "Miranda": { mesas: 31, electores: 22578, capital: "Miranda", centro: [10.149892, -68.401530] },
-        "Montalbán": { mesas: 24, electores: 19238, capital: "Montalbán", centro: [10.213548, -68.325858] },
-        "Naguanagua": { mesas: 127, electores: 106869, capital: "Naguanagua", centro: [10.268467, -68.015500] },
-        "Puerto Cabello": { mesas: 188, electores: 150415, capital: "Puerto Cabello", centro: [10.471149, -68.024911] },
-        "San Diego": { mesas: 81, electores: 72497, capital: "San Diego", centro: [10.258939, -67.963485] },
-        "San Joaquín": { mesas: 56, electores: 45866, capital: "San Joaquín", centro: [10.259778, -67.801935] },
-        "Bejuma": { mesas: 52, electores: 37484, capital: "Bejuma", centro: [10.176950, -68.259151] }
-    };
-    
-    const flagUrls = {
-        "Valencia": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Valencia.jpg",
-        "Diego Ibarra": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Diego%20Ibarra.jpg",
-        "Carlos Arvelo": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/carlos%20arvelo.jpg",
-        "Guacara": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Guacara.jpg",
-        "Juan José Mora": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Juan%20Jose%20Mora.jpg",
-        "Libertador": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Libertador.jpg",
-        "Los Guayos": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Los%20Guayos.jpg",
-        "Miranda": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Miranda.jpg",
-        "Montalbán": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Montalban.jpg",
-        "Naguanagua": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Naguanagua.jpg",
-        "Puerto Cabello": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Puerto%20Cabello.jpg",
-        "San Diego": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/San%20diego.jpg",
-        "San Joaquín": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/San%20Joaquin.jpg",
-        "Bejuma": "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/Bejuma.jpg"
-    };
-    const LOGO_URL = "https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/main/logo_conconcertacion_carabobo-removebg-preview.png";
-    
-    // ======================= INICIALIZAR MAPA =======================
-    const map = L.map('map').setView([10.18, -68.05], 10);
-    const street = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' });
-    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
-    street.addTo(map);
-    L.control.layers({ "Vista Mapa": street, "Satelital": satellite }).addTo(map);
-    
-    let municipiosLayer = null, parroquiasLayer = null;
-    let parishByMunicipio = new Map();
-    let currentMunId = null;
-    const sidebar = document.getElementById('sidebarPanel');
-    const sidebarContent = document.getElementById('sidebarDynamic');
-    document.getElementById('closeSidebarBtn').addEventListener('click', () => sidebar.classList.add('hidden'));
-    
-    function showError(msg) {
-        const loaderDiv = document.getElementById('loaderMsg');
-        loaderDiv.innerHTML = `⚠️ ${msg}`;
-        loaderDiv.style.background = "#b91c1c";
-        console.error(msg);
-        // Mostrar banner adicional
-        if (!document.querySelector('.error-banner')) {
-            const banner = document.createElement('div');
-            banner.className = 'error-banner';
-            banner.innerHTML = msg + ' - Revisa consola (F12)';
-            document.body.prepend(banner);
+/* ============================================================
+   DATA: MUNICIPIOS CARABOBO
+============================================================ */
+const MUNICIPIOS = {
+  "Valencia": {
+    id: "Valencia",
+    capital: "Valencia",
+    mesas: 742, electores: 613670,
+    coords: [10.153985, -67.988735],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Valencia.jpg?raw=true",
+    parroquias: ["Candelaria","Catedral","El Socorro","Miguel Peña","Rafael Urdaneta","San Blas","San José","Santa Rosa","Negro Primero"]
+  },
+  "Diego Ibarra": {
+    id: "Diego Ibarra",
+    capital: "Mariara",
+    mesas: 90, electores: 71951,
+    coords: [10.2607, -67.7208],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Diego%20Ibarra.jpg?raw=true",
+    parroquias: ["Mariara","Aguas Calientes"]
+  },
+  "Carlos Arvelo": {
+    id: "Carlos Arvelo",
+    capital: "Güigüe",
+    mesas: 147, electores: 107312,
+    coords: [10.1047, -67.7856],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/carlos%20arvelo.jpg?raw=true",
+    parroquias: ["Güigüe","Belén","Tacarigua"]
+  },
+  "Guacara": {
+    id: "Guacara",
+    capital: "Guacara",
+    mesas: 153, electores: 131072,
+    coords: [10.2368, -67.8839],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Guacara.jpg?raw=true",
+    parroquias: ["Guacara","Ciudad Alianza","Yagua"]
+  },
+  "Juan José Mora": {
+    id: "Juan José Mora",
+    capital: "Morón",
+    mesas: 78, electores: 53965,
+    coords: [10.4842, -68.1914],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Juan%20Jose%20Mora.jpg?raw=true",
+    parroquias: ["Morón","Urama"]
+  },
+  "Libertador": {
+    id: "Libertador",
+    capital: "Tocuyito",
+    mesas: 159, electores: 124901,
+    coords: [10.1017, -68.0914],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Libertador.jpg?raw=true",
+    parroquias: ["Tocuyito","Independencia"]
+  },
+  "Los Guayos": {
+    id: "Los Guayos",
+    capital: "Los Guayos",
+    mesas: 131, electores: 106124,
+    coords: [10.2039, -67.9564],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Los%20Guayos.jpg?raw=true",
+    parroquias: ["Los Guayos"]
+  },
+  "Miranda": {
+    id: "Miranda",
+    capital: "Miranda",
+    mesas: 31, electores: 22578,
+    coords: [10.1861, -68.3647],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Miranda.jpg?raw=true",
+    parroquias: ["Miranda"]
+  },
+  "Montalbán": {
+    id: "Montalbán",
+    capital: "Montalbán",
+    mesas: 24, electores: 19238,
+    coords: [10.2278, -68.3286],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Montalban.jpg?raw=true",
+    parroquias: ["Montalbán"]
+  },
+  "Naguanagua": {
+    id: "Naguanagua",
+    capital: "Naguanagua",
+    mesas: 127, electores: 106869,
+    coords: [10.2261, -67.9936],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Naguanagua.jpg?raw=true",
+    parroquias: ["Naguanagua"]
+  },
+  "Puerto Cabello": {
+    id: "Puerto Cabello",
+    capital: "Puerto Cabello",
+    mesas: 188, electores: 150415,
+    coords: [10.4806, -68.0072],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Puerto%20Cabello.jpg?raw=true",
+    parroquias: ["Bartolomé Salom","Democracia","Fraternidad","Goaigoaza","Juan José Flores","Unión","Borburata","Patanemo"]
+  },
+  "San Diego": {
+    id: "San Diego",
+    capital: "San Diego",
+    mesas: 81, electores: 72497,
+    coords: [10.2467, -67.9550],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20diego.jpg?raw=true",
+    parroquias: ["San Diego"]
+  },
+  "San Joaquín": {
+    id: "San Joaquín",
+    capital: "San Joaquín",
+    mesas: 56, electores: 45866,
+    coords: [10.2697, -67.7886],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20Joaquin.jpg?raw=true",
+    parroquias: ["San Joaquín"]
+  },
+  "Bejuma": {
+    id: "Bejuma",
+    capital: "Bejuma",
+    mesas: 52, electores: 37484,
+    coords: [10.1786, -68.2628],
+    flag: "https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Bejuma.jpg?raw=true",
+    parroquias: ["Simón Bolívar","Canoabo","Bejuma"]
+  }
+};
+
+const TOTAL_ELECTORES = 1663942;
+const TOTAL_MESAS = 2059;
+const MAX_ELECTORES = Math.max(...Object.values(MUNICIPIOS).map(m => m.electores));
+
+/* ============================================================
+   PARTICLES
+============================================================ */
+(function initParticles() {
+  const canvas = document.getElementById('particles-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  class Particle {
+    constructor() { this.reset(); }
+    reset() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H;
+      this.size = Math.random() * 1.2 + 0.3;
+      this.vx = (Math.random() - 0.5) * 0.15;
+      this.vy = (Math.random() - 0.5) * 0.15;
+      this.alpha = Math.random() * 0.5 + 0.1;
+      this.color = Math.random() > 0.5 ? '#00c8ff' : '#00ff99';
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.alpha;
+      ctx.fill();
+    }
+  }
+
+  for (let i=0; i<80; i++) particles.push(new Particle());
+
+  function loop() {
+    ctx.clearRect(0,0,W,H);
+    ctx.globalAlpha = 1;
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+/* ============================================================
+   CLOCK
+============================================================ */
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ============================================================
+   MAP INIT
+============================================================ */
+let map, municipioLayer, parroquiaLayer, heatLayer;
+let selectedMunicipioLayer = null;
+let activeMunicipioName = null;
+let layerStates = { municipios: true, parroquias: true, heatmap: true };
+
+// Tile layers
+const tileDark = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  { maxZoom: 18, attribution: '' }
+);
+const tileSat = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  { maxZoom: 18, attribution: '' }
+);
+
+let currentTile = 'dark';
+
+map = L.map('map', {
+  center: [10.18, -68.05],
+  zoom: 9,
+  zoomControl: true,
+  attributionControl: false,
+  layers: [tileDark]
+});
+
+map.zoomControl.setPosition('bottomright');
+
+// Track zoom
+map.on('zoomend', () => {
+  document.getElementById('zoom-level').textContent = `ZOOM: ${map.getZoom()}`;
+});
+map.on('mousemove', e => {
+  const el = document.getElementById('coord-display');
+  el.textContent = `LAT: ${e.latlng.lat.toFixed(4)} | LNG: ${e.latlng.lng.toFixed(4)}`;
+  el.classList.remove('coord-updating');
+  void el.offsetWidth;
+  el.classList.add('coord-updating');
+});
+
+/* ============================================================
+   COLOR / STYLE HELPERS
+============================================================ */
+function getHeatColor(electores) {
+  const ratio = electores / MAX_ELECTORES;
+  if (ratio > 0.8) return { color: '#00c8ff', fill: '#003d6b', opacity: 0.75 };
+  if (ratio > 0.5) return { color: '#00a8d4', fill: '#002a52', opacity: 0.65 };
+  if (ratio > 0.25) return { color: '#0077aa', fill: '#001a3a', opacity: 0.55 };
+  return { color: '#004477', fill: '#000f22', opacity: 0.45 };
+}
+
+function muniStyle(feature) {
+  const name = feature.properties.NAME_2 || feature.properties.name || '';
+  const muni = findMunicipio(name);
+  if (!muni) return { color: '#00c8ff', weight: 1, opacity: 0.4, fillOpacity: 0.12, fillColor: '#001a3a' };
+  const h = getHeatColor(muni.electores);
+  return {
+    color: h.color,
+    weight: 1.2,
+    opacity: layerStates.heatmap ? h.opacity : 0.5,
+    fillOpacity: layerStates.heatmap ? 0.3 : 0.12,
+    fillColor: layerStates.heatmap ? h.fill : '#001122',
+    dashArray: null
+  };
+}
+
+function parroquiaStyle() {
+  return {
+    color: 'rgba(0,255,153,0.35)',
+    weight: 0.7,
+    opacity: 0.6,
+    fillOpacity: 0.05,
+    fillColor: '#00ff99',
+    dashArray: '3,5'
+  };
+}
+
+function findMunicipio(geoName) {
+  if (!geoName) return null;
+  const norm = s => s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[-_]/g,' ').trim();
+  const n = norm(geoName);
+  for (const [k, v] of Object.entries(MUNICIPIOS)) {
+    if (norm(k) === n || n.includes(norm(k)) || norm(k).includes(n)) return v;
+  }
+  return null;
+}
+
+/* ============================================================
+   GEOJSON LAYERS — inline minimal polygons for Carabobo
+   (Since we can't fetch external files in a standalone HTML,
+    we embed simplified polygon data for each municipality)
+============================================================ */
+
+// Simplified GeoJSON for Carabobo municipalities
+const caraboboGeoJSON = {
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Valencia"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.12,10.05],[-67.88,10.05],[-67.88,10.26],[-68.12,10.26],[-68.12,10.05]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Naguanagua"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.08,10.21],[-67.95,10.21],[-67.95,10.28],[-68.08,10.28],[-68.08,10.21]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"San Diego"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.01,10.22],[-67.90,10.22],[-67.90,10.29],[-68.01,10.29],[-68.01,10.22]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Los Guayos"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.01,10.17],[-67.91,10.17],[-67.91,10.24],[-68.01,10.24],[-68.01,10.17]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Guacara"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-67.97,10.19],[-67.83,10.19],[-67.83,10.31],[-67.97,10.31],[-67.97,10.19]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Diego Ibarra"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-67.79,10.20],[-67.65,10.20],[-67.65,10.33],[-67.79,10.33],[-67.79,10.20]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Carlos Arvelo"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-67.88,10.05],[-67.65,10.05],[-67.65,10.20],[-67.88,10.20],[-67.88,10.05]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"San Joaquín"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-67.84,10.23],[-67.72,10.23],[-67.72,10.32],[-67.84,10.32],[-67.84,10.23]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Puerto Cabello"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.12,10.37],[-67.88,10.37],[-67.88,10.60],[-68.12,10.60],[-68.12,10.37]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Juan José Mora"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.30,10.39],[-68.10,10.39],[-68.10,10.58],[-68.30,10.58],[-68.30,10.39]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Libertador"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.19,10.00],[-68.04,10.00],[-68.04,10.18],[-68.19,10.18],[-68.19,10.00]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Bejuma"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.38,10.11],[-68.19,10.11],[-68.19,10.26],[-68.38,10.26],[-68.38,10.11]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Montalbán"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.40,10.17],[-68.26,10.17],[-68.26,10.29],[-68.40,10.29],[-68.40,10.17]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"NAME_2":"Miranda"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.45,10.12],[-68.30,10.12],[-68.30,10.24],[-68.45,10.24],[-68.45,10.12]
+      ]]}
+    }
+  ]
+};
+
+// Parroquia outlines (subdivisions within each municipality)
+const parroquiaGeoJSON = {
+  "type": "FeatureCollection",
+  "features": [
+    // Valencia subdivided into 3 zones
+    {
+      "type":"Feature",
+      "properties":{"name":"Candelaria / Catedral"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.12,10.05],[-68.00,10.05],[-68.00,10.155],[-68.12,10.155],[-68.12,10.05]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"name":"Miguel Peña / San Blas"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.00,10.05],[-67.88,10.05],[-67.88,10.155],[-68.00,10.155],[-68.00,10.05]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"name":"San José / Santa Rosa / Negro Primero"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.12,10.155],[-67.88,10.155],[-67.88,10.26],[-68.12,10.26],[-68.12,10.155]
+      ]]}
+    },
+    // Puerto Cabello subdivisions
+    {
+      "type":"Feature",
+      "properties":{"name":"Bartolomé Salom / Democracia"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.12,10.37],[-68.00,10.37],[-68.00,10.48],[-68.12,10.48],[-68.12,10.37]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"name":"Goaigoaza / Fraternidad / Unión"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.00,10.37],[-67.88,10.37],[-67.88,10.48],[-68.00,10.48],[-68.00,10.37]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"name":"Borburata / Patanemo"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.00,10.48],[-67.88,10.48],[-67.88,10.60],[-68.00,10.60],[-68.00,10.48]
+      ]]}
+    },
+    // Bejuma
+    {
+      "type":"Feature",
+      "properties":{"name":"Simón Bolívar / Canoabo"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.38,10.11],[-68.285,10.11],[-68.285,10.26],[-68.38,10.26],[-68.38,10.11]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"name":"Bejuma"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.285,10.11],[-68.19,10.11],[-68.19,10.26],[-68.285,10.26],[-68.285,10.11]
+      ]]}
+    },
+    // Carlos Arvelo
+    {
+      "type":"Feature",
+      "properties":{"name":"Güigüe / Belén"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-67.88,10.05],[-67.76,10.05],[-67.76,10.20],[-67.88,10.20],[-67.88,10.05]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"name":"Tacarigua"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-67.76,10.05],[-67.65,10.05],[-67.65,10.20],[-67.76,10.20],[-67.76,10.05]
+      ]]}
+    },
+    // Guacara
+    {
+      "type":"Feature",
+      "properties":{"name":"Ciudad Alianza / Yagua"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-67.97,10.19],[-67.90,10.19],[-67.90,10.31],[-67.97,10.31],[-67.97,10.19]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"name":"Guacara"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-67.90,10.19],[-67.83,10.19],[-67.83,10.31],[-67.90,10.31],[-67.90,10.19]
+      ]]}
+    },
+    // Libertador
+    {
+      "type":"Feature",
+      "properties":{"name":"Tocuyito"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.19,10.00],[-68.115,10.00],[-68.115,10.18],[-68.19,10.18],[-68.19,10.00]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"name":"Independencia"},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-68.115,10.00],[-68.04,10.00],[-68.04,10.18],[-68.115,10.18],[-68.115,10.00]
+      ]]}
+    }
+  ]
+};
+
+/* ============================================================
+   LOAD LAYERS
+============================================================ */
+function buildMuniLayer() {
+  return L.geoJSON(caraboboGeoJSON, {
+    style: muniStyle,
+    onEachFeature: (feature, layer) => {
+      const name = feature.properties.NAME_2;
+      const muni = findMunicipio(name);
+
+      // Tooltip
+      layer.bindTooltip(`
+        <div class="tt-name">${name}</div>
+        <div class="tt-stat">Electores: <span>${muni ? muni.electores.toLocaleString('es-VE') : '—'}</span></div>
+        <div class="tt-stat">Mesas: <span>${muni ? muni.mesas : '—'}</span></div>
+      `, { className: 'map-tooltip', sticky: true, offset: [8,0] });
+
+      layer.on({
+        mouseover: e => {
+          const l = e.target;
+          l.setStyle({
+            weight: 2.5,
+            color: '#00c8ff',
+            fillOpacity: 0.45,
+            fillColor: '#004488'
+          });
+          l.bringToFront();
+        },
+        mouseout: e => {
+          if (activeMunicipioName === name) return;
+          municipioLayer.resetStyle(e.target);
+        },
+        click: e => {
+          selectMunicipio(name, layer);
         }
+      });
     }
-    
-    // Inteligencia para extraer nombre del municipio de cualquier propiedad
-    function getMunicipioName(props) {
-        const candidates = ['ADM2_NAME', 'NAME_2', 'MPIO_NOMBRE', 'NOMBRE_MUN', 'municipio', 'name'];
-        for (let c of candidates) if (props[c]) return props[c];
-        return null;
+  });
+}
+
+function buildParroquiaLayer() {
+  return L.geoJSON(parroquiaGeoJSON, {
+    style: parroquiaStyle,
+    onEachFeature: (feature, layer) => {
+      const name = feature.properties.name;
+      layer.bindTooltip(`<div class="tt-stat" style="color:var(--c-accent2)">${name}</div>`,
+        { className: 'map-tooltip', sticky: true });
     }
-    
-    function getParroquiaName(props) {
-        const candidates = ['ADM3_NAME', 'NAME_3', 'PARROQUIA', 'NOMBRE_PARROQ', 'parroquia'];
-        for (let c of candidates) if (props[c]) return props[c];
-        return null;
+  });
+}
+
+municipioLayer  = buildMuniLayer();
+parroquiaLayer = buildParroquiaLayer();
+
+municipioLayer.addTo(map);
+parroquiaLayer.addTo(map);
+
+// Fit to Carabobo bounds
+map.fitBounds([
+  [10.0, -68.5],
+  [10.65, -67.6]
+]);
+
+/* ============================================================
+   SELECT MUNICIPIO
+============================================================ */
+function selectMunicipio(name, layer) {
+  activeMunicipioName = name;
+  const muni = MUNICIPIOS[name] || findMunicipio(name);
+  if (!muni) return;
+
+  // Reset all styles
+  municipioLayer.eachLayer(l => {
+    const n = l.feature.properties.NAME_2;
+    if (n === name) {
+      l.setStyle({
+        weight: 3,
+        color: '#00ffcc',
+        fillOpacity: 0.55,
+        fillColor: '#003355'
+      });
+      l.bringToFront();
+    } else {
+      l.setStyle({
+        weight: 1,
+        color: 'rgba(0,200,255,0.2)',
+        fillOpacity: 0.08,
+        fillColor: '#000a18'
+      });
     }
-    
-    function getParentMunicipioFromParroquia(props) {
-        const candidates = ['ADM2_NAME', 'NAME_2', 'MPIO_NOMBRE', 'municipio', 'MUNICIPIO'];
-        for (let c of candidates) if (props[c]) return props[c];
-        return null;
-    }
-    
-    // ======================= CARGAR GEOJSON =======================
-    async function loadData() {
-        try {
-            const [munRes, parRes] = await Promise.all([fetch(MUNI_URL), fetch(PARROQ_URL)]);
-            if (!munRes.ok) throw new Error(`Municipios HTTP ${munRes.status}`);
-            if (!parRes.ok) throw new Error(`Parroquias HTTP ${parRes.status}`);
-            
-            const municipiosJson = await munRes.json();
-            const parroquiasJson = await parRes.json();
-            
-            console.log("✅ GeoJSON cargados", municipiosJson.features.length, parroquiasJson.features.length);
-            console.log("Ejemplo propiedades municipio:", municipiosJson.features[0]?.properties);
-            console.log("Ejemplo propiedades parroquia:", parroquiasJson.features[0]?.properties);
-            
-            // Filtrar solo Carabobo (detectar campo de estado)
-            let caraboboMunis = municipiosJson.features.filter(f => {
-                const props = f.properties;
-                const estado = props.ADM1_NAME || props.NAME_1 || props.ESTADO || '';
-                return estado.toLowerCase().includes('carabobo');
-            });
-            if (caraboboMunis.length === 0) {
-                // fallback: si no encuentra, toma los primeros 14 sospechosos (pero muestra advertencia)
-                console.warn("No se detectó Carabobo, usando todos los municipios del archivo");
-                caraboboMunis = municipiosJson.features;
-            }
-            console.log(`Municipios de Carabobo: ${caraboboMunis.length}`);
-            
-            // Crear capa municipios
-            municipiosLayer = L.geoJSON({ type: "FeatureCollection", features: caraboboMunis }, {
-                style: { fillColor: '#3b82b6', color: '#fff', weight: 1.2, fillOpacity: 0.6 },
-                onEachFeature: (feature, layer) => {
-                    const munName = getMunicipioName(feature.properties);
-                    if (!munName) return;
-                    // Hover
-                    layer.on('mouseover', () => {
-                        if (currentMunId === munName) return;
-                        layer.setStyle({ weight: 3, color: '#ffcd94', fillOpacity: 0.8 });
-                    });
-                    layer.on('mouseout', () => {
-                        if (currentMunId === munName) return;
-                        layer.setStyle({ weight: 1.2, color: '#fff', fillOpacity: 0.6 });
-                    });
-                    layer.on('click', () => {
-                        // Resaltar municipio y oscurecer otros
-                        if (currentMunId === munName) return;
-                        currentMunId = munName;
-                        municipiosLayer.eachLayer(l => {
-                            const name = getMunicipioName(l.feature.properties);
-                            if (name === munName) l.setStyle({ fillColor: '#f4a261', weight: 3, fillOpacity: 0.85 });
-                            else l.setStyle({ fillColor: '#6c757d', fillOpacity: 0.25, weight: 1 });
-                        });
-                        // Resaltar parroquias
-                        if (parroquiasLayer) {
-                            parroquiasLayer.eachLayer(layerP => {
-                                const parentMun = getParentMunicipioFromParroquia(layerP.feature.properties);
-                                if (parentMun && parentMun.toLowerCase() === munName.toLowerCase()) {
-                                    layerP.setStyle({ fillColor: '#ffb347', weight: 2.5, fillOpacity: 0.85 });
-                                } else {
-                                    layerP.setStyle({ fillColor: '#4a5d6c', fillOpacity: 0.2, weight: 0.8 });
-                                }
-                            });
-                        }
-                        // Actualizar sidebar
-                        updateSidebar(munName);
-                        map.fitBounds(layer.getBounds(), { padding: [40,40] });
-                    });
-                }
-            }).addTo(map);
-            
-            // Capa de parroquias
-            parroquiasLayer = L.geoJSON(parroquiasJson, {
-                style: { fillColor: '#2c6e49', color: '#cfe6cf', weight: 1, fillOpacity: 0.4 },
-                onEachFeature: (feature, layer) => {
-                    const parrName = getParroquiaName(feature.properties);
-                    const munParent = getParentMunicipioFromParroquia(feature.properties);
-                    if (munParent) {
-                        if (!parishByMunicipio.has(munParent)) parishByMunicipio.set(munParent, []);
-                        const list = parishByMunicipio.get(munParent);
-                        if (parrName && !list.includes(parrName)) list.push(parrName);
-                    }
-                }
-            }).addTo(map);
-            
-            // Ordenar listas de parroquias
-            for (let [k, v] of parishByMunicipio.entries()) parishByMunicipio.set(k, v.sort());
-            
-            // Asegurar que todos los municipios tengan al menos lista vacía
-            Object.keys(electoralData).forEach(mun => {
-                if (!parishByMunicipio.has(mun)) parishByMunicipio.set(mun, []);
-            });
-            
-            document.getElementById('loaderMsg').style.display = 'none';
-            // Ajustar vista a Carabobo
-            if (municipiosLayer.getBounds().isValid()) map.fitBounds(municipiosLayer.getBounds(), { padding: [30,30] });
-            
-            // Click en mapa vacío: resetear todo
-            map.on('click', (e) => {
-                if (currentMunId) {
-                    resetMapStyles();
-                    currentMunId = null;
-                    sidebar.classList.add('hidden');
-                }
-            });
-            
-        } catch (err) {
-            showError(`Error crítico: ${err.message}. Verifica las URLs y CORS.`);
-            console.error(err);
+  });
+
+  // Zoom to municipality
+  const bounds = layer.getBounds();
+  map.fitBounds(bounds, { padding: [40,40], maxZoom: 12 });
+
+  // Show detail panel
+  renderMuniDetail(muni);
+  switchTab('municipio');
+
+  // Update sidebar list
+  document.querySelectorAll('.muni-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === name);
+  });
+}
+
+function backToEstado() {
+  activeMunicipioName = null;
+  municipioLayer.eachLayer(l => municipioLayer.resetStyle(l));
+  map.fitBounds([[10.0,-68.5],[10.65,-67.6]], { padding:[20,20] });
+  switchTab('estado');
+  document.querySelectorAll('.muni-item').forEach(el => el.classList.remove('active'));
+}
+
+/* ============================================================
+   RENDER MUNICIPIO DETAIL
+============================================================ */
+function animateCount(el, target) {
+  const duration = 900;
+  const start = performance.now();
+  const startVal = 0;
+  function step(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const val = Math.round(startVal + (target - startVal) * ease);
+    el.textContent = val.toLocaleString('es-VE');
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function renderMuniDetail(muni) {
+  const pct_electores = (muni.electores / TOTAL_ELECTORES * 100).toFixed(1);
+  const pct_mesas = (muni.mesas / TOTAL_MESAS * 100).toFixed(1);
+
+  const parroqHTML = muni.parroquias.map(p => `
+    <div class="parroquia-item">
+      <span class="parroquia-name">${p}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('muni-detail-content').innerHTML = `
+    <div class="muni-detail-header">
+      <div class="muni-detail-flag-row">
+        <img class="muni-detail-flag" src="${muni.flag}" alt="${muni.id}" onerror="this.style.display='none'">
+        <div>
+          <div class="muni-detail-name">${muni.id}</div>
+          <div class="muni-detail-cap">Capital: ${muni.capital}</div>
+          <div class="muni-detail-coord">📍 ${muni.coords[0].toFixed(4)}°N, ${muni.coords[1].toFixed(4)}°W</div>
+        </div>
+      </div>
+    </div>
+    <div class="metrics-grid" style="padding:12px 16px;">
+      <div class="metric-card">
+        <span class="metric-icon">🗳️</span>
+        <div class="metric-val" id="dc-electores">0</div>
+        <div class="metric-lbl">Electores</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">📋</span>
+        <div class="metric-val" id="dc-mesas">0</div>
+        <div class="metric-lbl">Mesas</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">📍</span>
+        <div class="metric-val">${muni.parroquias.length}</div>
+        <div class="metric-lbl">Parroquias</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">📊</span>
+        <div class="metric-val">${pct_electores}%</div>
+        <div class="metric-lbl">Del Estado</div>
+      </div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-row">
+        <span class="progress-label">Participación Electoral</span>
+        <span class="progress-val">${pct_electores}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill fill-cyan" style="width:0%" id="prog-e"></div>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Distribución de Mesas</span>
+        <span class="progress-val">${pct_mesas}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill fill-green" style="width:0%" id="prog-m"></div>
+      </div>
+    </div>
+    <div class="section-title">PARROQUIAS (${muni.parroquias.length})</div>
+    <div class="parroquia-list">${parroqHTML}</div>
+  `;
+
+  // Animate counters
+  setTimeout(() => {
+    animateCount(document.getElementById('dc-electores'), muni.electores);
+    animateCount(document.getElementById('dc-mesas'), muni.mesas);
+    const pe = document.getElementById('prog-e');
+    const pm = document.getElementById('prog-m');
+    if (pe) pe.style.width = pct_electores + '%';
+    if (pm) pm.style.width = pct_mesas + '%';
+  }, 80);
+}
+
+/* ============================================================
+   SIDEBAR TABS
+============================================================ */
+function switchTab(name) {
+  document.querySelectorAll('.sb-tab').forEach((t,i) => {
+    const tabs = ['estado','municipio','analisis'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.sb-panel').forEach(p => {
+    p.classList.remove('active');
+  });
+  const panel = document.getElementById('tab-' + name);
+  if (panel) {
+    panel.classList.add('active');
+    panel.classList.add('fade-in');
+    setTimeout(() => panel.classList.remove('fade-in'), 400);
+  }
+}
+
+// Tab click binding
+document.querySelectorAll('.sb-tab').forEach((tab, i) => {
+  const names = ['estado','municipio','analisis'];
+  tab.addEventListener('click', () => switchTab(names[i]));
+});
+
+/* ============================================================
+   BUILD SIDEBAR MUNICIPALITY LIST
+============================================================ */
+function buildMuniList() {
+  const sorted = Object.values(MUNICIPIOS).sort((a,b) => b.electores - a.electores);
+  const container = document.getElementById('muni-list-sidebar');
+  container.innerHTML = '';
+
+  sorted.forEach(muni => {
+    const ratio = muni.electores / MAX_ELECTORES * 100;
+    const div = document.createElement('div');
+    div.className = 'muni-item';
+    div.dataset.id = muni.id;
+    div.innerHTML = `
+      <img class="muni-flag" src="${muni.flag}" alt="${muni.id}" onerror="this.style.background:'rgba(0,200,255,0.1)'">
+      <div class="muni-info">
+        <div class="muni-name">${muni.id}</div>
+        <div class="muni-stats">${muni.electores.toLocaleString('es-VE')} · ${muni.mesas} mesas</div>
+      </div>
+      <div class="muni-bar-wrap">
+        <div class="muni-bar" style="width:${ratio}%"></div>
+      </div>
+    `;
+    div.addEventListener('click', () => {
+      // Find the layer and select
+      municipioLayer.eachLayer(layer => {
+        const n = layer.feature.properties.NAME_2;
+        if (findMunicipio(n) === muni || n === muni.id) {
+          selectMunicipio(n, layer);
         }
-    }
-    
-    function resetMapStyles() {
-        if (municipiosLayer) {
-            municipiosLayer.eachLayer(l => l.setStyle({ fillColor: '#3b82b6', fillOpacity: 0.6, weight: 1.2, color: '#fff' }));
+      });
+    });
+    container.appendChild(div);
+  });
+}
+buildMuniList();
+
+/* ============================================================
+   ANALYSIS TAB
+============================================================ */
+function buildAnalysis() {
+  const sorted = Object.values(MUNICIPIOS).sort((a,b) => b.electores - a.electores);
+
+  // Ranking
+  const rankList = document.getElementById('ranking-list');
+  rankList.innerHTML = '';
+  sorted.slice(0,8).forEach((muni, i) => {
+    const ratio = muni.electores / MAX_ELECTORES * 100;
+    const div = document.createElement('div');
+    div.className = 'rank-item';
+    div.innerHTML = `
+      <div class="rank-num">#${i+1}</div>
+      <div class="rank-body">
+        <div class="rank-name">${muni.id}</div>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar" style="width:${ratio}%"></div>
+        </div>
+      </div>
+      <div class="rank-val">${(muni.electores/1000).toFixed(1)}K</div>
+    `;
+    rankList.appendChild(div);
+  });
+
+  // Donut chart using conic-gradient
+  const top4 = sorted.slice(0,4);
+  const others = sorted.slice(4).reduce((s,m) => s + m.electores, 0);
+  const colors = ['#00c8ff','#00ff99','#0055ff','#ff6b35','#5a8fa8'];
+  let angle = 0;
+  const segments = [...top4.map(m => m.electores), others];
+  const segColors = colors;
+  const total = segments.reduce((a,b)=>a+b,0);
+  let grad = 'conic-gradient(';
+  segments.forEach((val, i) => {
+    const pct = val/total*360;
+    grad += `${segColors[i]} ${angle}deg ${angle+pct}deg`;
+    if (i < segments.length-1) grad += ', ';
+    angle += pct;
+  });
+  grad += ')';
+  document.getElementById('donut-chart').style.background = grad;
+
+  const hole = document.createElement('div');
+  hole.className = 'donut-hole';
+  hole.innerHTML = `14<br>MUNIC`;
+  document.getElementById('donut-chart').appendChild(hole);
+
+  const legend = document.getElementById('donut-legend');
+  legend.innerHTML = '';
+  top4.forEach((muni, i) => {
+    const pct = (muni.electores/total*100).toFixed(1);
+    legend.innerHTML += `
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${colors[i]}"></div>
+        <span>${muni.id}: ${pct}%</span>
+      </div>
+    `;
+  });
+  legend.innerHTML += `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${colors[4]}"></div>
+      <span>Otros: ${(others/total*100).toFixed(1)}%</span>
+    </div>
+  `;
+
+  // Density bars (mesas per 1000 electores)
+  const densityContainer = document.getElementById('density-bars');
+  densityContainer.innerHTML = '';
+  const withDensity = sorted.map(m => ({
+    ...m, density: (m.mesas / m.electores * 1000).toFixed(2)
+  })).sort((a,b) => b.density - a.density);
+  const maxDensity = withDensity[0].density;
+  withDensity.slice(0,6).forEach(m => {
+    const pct = m.density / maxDensity * 100;
+    densityContainer.innerHTML += `
+      <div class="rank-item">
+        <div class="rank-body">
+          <div class="rank-name">${m.id}</div>
+          <div class="rank-bar-wrap">
+            <div class="rank-bar" style="width:${pct}%; background: linear-gradient(90deg, #005f44, #00ff99)"></div>
+          </div>
+        </div>
+        <div class="rank-val" style="color:var(--c-accent2)">${m.density}/k</div>
+      </div>
+    `;
+  });
+}
+buildAnalysis();
+
+/* ============================================================
+   LAYER TOGGLE
+============================================================ */
+function toggleLayerModal() {
+  document.getElementById('layer-modal').classList.toggle('visible');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#layer-modal') && !e.target.closest('#layer-toggle-btn')) {
+    document.getElementById('layer-modal').classList.remove('visible');
+  }
+});
+
+function toggleLayer(name) {
+  layerStates[name] = !layerStates[name];
+  const pill = document.getElementById('pill-' + name);
+  const opt = document.getElementById('layer-' + name);
+  if (pill) pill.classList.toggle('on', layerStates[name]);
+  if (opt) opt.classList.toggle('active', layerStates[name]);
+
+  if (name === 'municipios') {
+    if (layerStates.municipios) { municipioLayer.addTo(map); }
+    else { map.removeLayer(municipioLayer); }
+  }
+  if (name === 'parroquias') {
+    if (layerStates.parroquias) { parroquiaLayer.addTo(map); }
+    else { map.removeLayer(parroquiaLayer); }
+  }
+  if (name === 'heatmap') {
+    municipioLayer.eachLayer(l => municipioLayer.resetStyle(l));
+  }
+}
+
+/* Tile toggle */
+let tileMode = 'dark';
+function switchTile() {
+  if (tileMode === 'dark') {
+    map.removeLayer(tileDark);
+    tileSat.addTo(map);
+    tileMode = 'sat';
+  } else {
+    map.removeLayer(tileSat);
+    tileDark.addTo(map);
+    tileMode = 'dark';
+  }
+}
+
+/* ============================================================
+   SEARCH
+============================================================ */
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
+
+const searchIndex = [];
+Object.values(MUNICIPIOS).forEach(m => {
+  searchIndex.push({ type: 'MUNICIPIO', name: m.id, muni: m });
+  m.parroquias.forEach(p => {
+    searchIndex.push({ type: 'PARROQUIA', name: p, muni: m });
+  });
+});
+
+function normSearch(s) {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+
+searchInput.addEventListener('input', () => {
+  const q = normSearch(searchInput.value);
+  if (q.length < 2) { searchResults.style.display = 'none'; return; }
+  const hits = searchIndex.filter(item => normSearch(item.name).includes(q)).slice(0,8);
+  if (hits.length === 0) { searchResults.style.display = 'none'; return; }
+  searchResults.style.display = 'block';
+  searchResults.innerHTML = hits.map((h, i) => `
+    <div class="search-item" data-idx="${i}">
+      <span class="type-tag">${h.type}</span>
+      <span>${h.name}</span>
+    </div>
+  `).join('');
+  hits.forEach((hit, i) => {
+    searchResults.querySelectorAll('.search-item')[i].addEventListener('click', () => {
+      searchInput.value = hit.name;
+      searchResults.style.display = 'none';
+      // Find and select municipio
+      municipioLayer.eachLayer(layer => {
+        const n = layer.feature.properties.NAME_2;
+        const muni = findMunicipio(n);
+        if (muni && (muni === hit.muni || muni.id === hit.muni.id)) {
+          selectMunicipio(n, layer);
         }
-        if (parroquiasLayer) {
-            parroquiasLayer.eachLayer(l => l.setStyle({ fillColor: '#2c6e49', fillOpacity: 0.4, weight: 1, color: '#cfe6cf' }));
-        }
-    }
-    
-    function updateSidebar(munName) {
-        const data = electoralData[munName];
-        if (!data) {
-            sidebarContent.innerHTML = `<div style="color:red;">Datos electorales no encontrados para ${munName}</div>`;
-            sidebar.classList.remove('hidden');
-            return;
-        }
-        const flag = flagUrls[munName] || '';
-        const parishes = parishByMunicipio.get(munName) || [];
-        const html = `
-            <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem;">
-                ${flag ? `<img src="${flag}" style="width:65px; height:45px; object-fit:cover; border-radius:12px;">` : ''}
-                <h2 style="color:#0a2b3e;">${munName}</h2>
-            </div>
-            <div style="background:#eef3fc; display:inline-block; padding:4px 12px; border-radius:40px;">🏛️ Capital: ${data.capital}</div>
-            <div class="stat-card"><span>🗳️ Mesas</span><strong>${data.mesas.toLocaleString()}</strong></div>
-            <div class="stat-card"><span>👥 Electores</span><strong>${data.electores.toLocaleString()}</strong></div>
-            <div class="parishes-list"><h4>📌 Parroquias (${parishes.length})</h4>${parishes.map(p => `<div>📍 ${p}</div>`).join('') || '<div>No se encontraron parroquias asociadas</div>'}</div>
-            <div style="display:flex; justify-content:center; margin-top:1rem;"><img src="${LOGO_URL}" style="height:50px;"></div>
-        `;
-        sidebarContent.innerHTML = html;
-        sidebar.classList.remove('hidden');
-    }
-    
-    loadData();
+      });
+    });
+  });
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#search-box')) searchResults.style.display = 'none';
+});
+
+/* ============================================================
+   SIDEBAR TOGGLE (MOBILE)
+============================================================ */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+/* ============================================================
+   LOADING SCREEN DISMISS
+============================================================ */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loading-screen').classList.add('hidden');
+  }, 2400);
+});
+
+/* ============================================================
+   AMBIENT ANIMATION — subtle glow pulse on map borders
+============================================================ */
+let glowDir = 1, glowVal = 0;
+function pulseMapBorders() {
+  glowVal += glowDir * 0.4;
+  if (glowVal >= 100) glowDir = -1;
+  if (glowVal <= 0) glowDir = 1;
+  requestAnimationFrame(pulseMapBorders);
+}
+pulseMapBorders();
+
+/* ============================================================
+   COUNTER ANIMATION ON HEADER STATS
+============================================================ */
+function animateHeaderCounter(elId, target) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  let start = null;
+  const duration = 1800;
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 4);
+    el.textContent = Math.round(target * ease).toLocaleString('es-VE');
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+setTimeout(() => {
+  animateHeaderCounter('hdr-electores', 1663942);
+  animateHeaderCounter('hdr-mesas', 2059);
+  animateHeaderCounter('m-electores', 1663942);
+  animateHeaderCounter('m-mesas', 2059);
+}, 2500);
+
 </script>
 </body>
 </html>
