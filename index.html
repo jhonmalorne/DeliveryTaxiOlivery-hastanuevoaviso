@@ -5,587 +5,877 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Mapa Electoral · Concertación Carabobo</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;500;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
-/* ─── RESET & TOKENS ─────────────────────────────────────────── */
+/* ══════════════════════ TOKENS ══════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --blu:  #0a2463; --blm:  #1a3a8f; --bll: #2255c8;
-  --grn:  #1b8a4c; --grl:  #27c06a;
-  --wht:  #f4f7ff; --gls:  rgba(255,255,255,.07);
-  --glb:  rgba(255,255,255,.14);
-  --hh:   64px;    --pw:   348px;   --rr:  14px;
-  --fh:   'Barlow Condensed',sans-serif;
-  --fb:   'DM Sans',sans-serif;
+  --B0:#04101f; --B1:#071830; --B2:#0a2463; --B3:#1a3a8f; --B4:#2255c8;
+  --G0:#0d4a28; --G1:#1b8a4c; --G2:#27c06a; --G3:#6febb0;
+  --W0:#f4f7ff; --W1:rgba(244,247,255,.7); --W2:rgba(244,247,255,.35);
+  --GLS:rgba(255,255,255,.06); --GLB:rgba(255,255,255,.13);
+  --HH:62px; --PW:360px; --RR:12px;
+  --FH:'Barlow Condensed',sans-serif; --FB:'DM Sans',sans-serif;
+  --SH:0 8px 32px rgba(0,0,0,.5);
 }
-html,body{height:100%;background:#04101e;color:var(--wht);font-family:var(--fb);overflow:hidden}
+html,body{height:100%;background:var(--B0);color:var(--W0);font-family:var(--FB);overflow:hidden}
 
-/* ─── LOADER ─────────────────────────────────────────────────── */
+/* ══════════════════════ LOADER ══════════════════════════════════ */
 #loader{
-  position:fixed;inset:0;background:#04101e;z-index:4000;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-  transition:opacity .6s
+  position:fixed;inset:0;background:var(--B0);z-index:5000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .7s ease
 }
 #loader.done{opacity:0;pointer-events:none}
-#loader img{height:72px;filter:drop-shadow(0 0 20px rgba(39,192,106,.6))}
-.spin{width:44px;height:44px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--grl);border-radius:50%;animation:spin .85s linear infinite}
-#loader-msg{font-family:var(--fh);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.38)}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ─── HEADER ─────────────────────────────────────────────────── */
-#hdr{
-  position:fixed;top:0;left:0;right:0;height:var(--hh);z-index:1200;
-  background:linear-gradient(90deg,#061730 0%,#0a2052 55%,#061a0f 100%);
-  border-bottom:1px solid var(--glb);
-  display:flex;align-items:center;justify-content:space-between;padding:0 18px;
-  box-shadow:0 2px 28px rgba(0,0,0,.7)
+#loader .logo-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+#loader img{height:78px;filter:drop-shadow(0 0 24px rgba(39,192,106,.65));animation:logoPulse 2s ease-in-out infinite}
+@keyframes logoPulse{0%,100%{filter:drop-shadow(0 0 16px rgba(39,192,106,.5))}50%{filter:drop-shadow(0 0 32px rgba(39,192,106,.9))}}
+.ring{
+  position:absolute;width:96px;height:96px;border-radius:50%;
+  border:2px solid transparent;
+  border-top-color:var(--G2);border-right-color:rgba(39,192,106,.3);
+  animation:spin .9s linear infinite
 }
-.brand{display:flex;align-items:center;gap:12px}
-.brand img{height:44px;filter:drop-shadow(0 0 10px rgba(39,192,106,.45))}
-.brand-txt{line-height:1.1}
-.brand-txt b{display:block;font-family:var(--fh);font-weight:900;font-size:1.3rem;letter-spacing:.07em;text-transform:uppercase}
-.brand-txt small{font-family:var(--fh);font-weight:300;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--grl);margin-top:2px}
-.hdr-stat{text-align:right}
-.hdr-stat .v{font-family:var(--fh);font-weight:700;font-size:1.45rem;color:var(--grl);letter-spacing:.04em}
-.hdr-stat .l{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;opacity:.5;display:block;margin-top:1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader-steps{display:flex;flex-direction:column;align-items:center;gap:6px}
+#loader-msg{font-family:var(--FH);font-size:.75rem;letter-spacing:.22em;text-transform:uppercase;color:var(--W2)}
+.step-dots{display:flex;gap:6px}
+.step-dot{width:6px;height:6px;border-radius:50%;background:var(--GLB);transition:background .4s}
+.step-dot.active{background:var(--G2)}
 
-/* ─── LAYOUT ─────────────────────────────────────────────────── */
-#app{height:100%;padding-top:var(--hh)}
-#map{height:100%;width:100%;background:#04101e}
+/* ══════════════════════ HEADER ══════════════════════════════════ */
+#hdr{
+  position:fixed;top:0;left:0;right:0;height:var(--HH);z-index:1200;
+  background:linear-gradient(90deg,#050f22 0%,#081a42 50%,#051409 100%);
+  border-bottom:1px solid var(--GLB);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+  box-shadow:0 2px 30px rgba(0,0,0,.75)
+}
+.brand{display:flex;align-items:center;gap:13px}
+.brand img{height:42px;filter:drop-shadow(0 0 10px rgba(39,192,106,.5))}
+.brand-txt b{display:block;font-family:var(--FH);font-weight:900;font-size:1.28rem;letter-spacing:.08em;text-transform:uppercase;color:var(--W0)}
+.brand-txt small{font-family:var(--FH);font-weight:400;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--G2);opacity:.9}
+/* header stats pill */
+.hdr-pills{display:flex;gap:10px;align-items:center}
+.hdr-pill{
+  display:flex;flex-direction:column;align-items:flex-end;
+  background:var(--GLS);border:1px solid var(--GLB);
+  border-radius:8px;padding:5px 12px
+}
+.hdr-pill .v{font-family:var(--FH);font-weight:700;font-size:1.3rem;color:var(--G2);letter-spacing:.04em;line-height:1}
+.hdr-pill .l{font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--W2);margin-top:2px}
+/* map mode badge */
+#map-mode-badge{
+  display:flex;align-items:center;gap:6px;
+  background:var(--GLS);border:1px solid var(--GLB);
+  border-radius:6px;padding:4px 10px;
+  font-family:var(--FH);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;color:var(--W2)
+}
+#map-mode-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--G2)}
+
+/* ══════════════════════ LAYOUT ══════════════════════════════════ */
+#app{height:100%;padding-top:var(--HH)}
+#map{height:100%;width:100%;background:var(--B0)}
 .leaflet-control-attribution{display:none!important}
+.leaflet-control-zoom{margin-top:10px!important;margin-right:10px!important}
+.leaflet-control-zoom a{
+  background:rgba(4,14,34,.9)!important;color:var(--W0)!important;
+  border-color:var(--GLB)!important;backdrop-filter:blur(8px)
+}
+.leaflet-control-zoom a:hover{background:rgba(27,138,76,.3)!important;color:var(--G2)!important}
 
-/* ─── LAYER SWITCHER ─────────────────────────────────────────── */
+/* ══════════════════════ LAYER SWITCHER ══════════════════════════ */
 #lsw{
-  position:fixed;bottom:22px;right:12px;z-index:1100;
-  display:flex;flex-direction:column;gap:5px
+  position:fixed;bottom:24px;right:14px;z-index:1100;
+  display:flex;flex-direction:column;gap:4px
 }
 .lb{
-  display:flex;align-items:center;gap:8px;
-  background:rgba(4,14,35,.92);border:1px solid var(--glb);
-  border-radius:9px;padding:7px 13px;cursor:pointer;
-  font-family:var(--fh);font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;
-  color:rgba(244,247,255,.5);transition:all .2s;backdrop-filter:blur(12px);white-space:nowrap
+  display:flex;align-items:center;gap:9px;
+  background:rgba(3,10,28,.92);border:1px solid var(--GLB);
+  border-radius:9px;padding:8px 14px;cursor:pointer;
+  font-family:var(--FH);font-size:.8rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--W2);transition:all .22s;backdrop-filter:blur(14px);white-space:nowrap;
+  box-shadow:0 4px 16px rgba(0,0,0,.4)
 }
-.lb:hover{background:rgba(20,55,150,.75);color:var(--wht)}
-.lb.on{border-color:var(--grl);color:var(--grl);background:rgba(27,138,76,.16)}
-.lb .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
+.lb:hover{background:rgba(25,60,160,.7);color:var(--W0);border-color:rgba(255,255,255,.25);transform:translateX(-2px)}
+.lb.on{border-color:var(--G2);color:var(--G2);background:rgba(27,138,76,.15);box-shadow:0 0 14px rgba(39,192,106,.15)}
+.lb .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;transition:box-shadow .2s}
+.lb.on .dot{box-shadow:0 0 8px currentColor}
 
-/* ─── SIDE PANEL ─────────────────────────────────────────────── */
+/* ══════════════════════ SIDE PANEL ══════════════════════════════ */
 #panel{
-  position:fixed;top:var(--hh);right:calc(-1 * var(--pw) - 24px);
-  width:var(--pw);height:calc(100% - var(--hh));
-  background:linear-gradient(168deg,rgba(9,30,82,.96) 0%,rgba(3,12,36,.99) 100%);
-  border-left:1px solid var(--glb);backdrop-filter:blur(22px);z-index:1100;
-  transition:right .44s cubic-bezier(.22,1,.36,1);
+  position:fixed;top:var(--HH);right:calc(-1 * var(--PW) - 30px);
+  width:var(--PW);height:calc(100% - var(--HH));z-index:1100;
+  background:linear-gradient(170deg,rgba(8,24,66,.97) 0%,rgba(3,9,28,.99) 100%);
+  border-left:1px solid var(--GLB);backdrop-filter:blur(24px);
+  transition:right .45s cubic-bezier(.22,1,.36,1);
   display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:-8px 0 52px rgba(0,0,0,.6)
+  box-shadow:-10px 0 60px rgba(0,0,0,.65)
 }
 #panel.open{right:0}
 
-/* cerrar */
+/* close */
 #pcls{
-  position:absolute;top:11px;right:11px;width:30px;height:30px;
-  border:1px solid var(--glb);border-radius:50%;background:var(--gls);
-  color:var(--wht);font-size:.95rem;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .2s,transform .25s;z-index:5
+  position:absolute;top:12px;right:12px;width:30px;height:30px;
+  border:1px solid var(--GLB);border-radius:50%;background:var(--GLS);
+  color:var(--W0);font-size:.9rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;z-index:5;
+  transition:background .2s,transform .25s,border-color .2s
 }
-#pcls:hover{background:rgba(255,255,255,.14);transform:rotate(90deg)}
+#pcls:hover{background:rgba(255,80,80,.15);border-color:rgba(255,100,100,.4);transform:rotate(90deg)}
 
-/* hero */
+/* ── HERO ── */
 #phero{
-  flex-shrink:0;padding:24px 20px 16px;border-bottom:1px solid var(--glb);
-  background:linear-gradient(140deg,rgba(27,138,76,.1) 0%,transparent 55%)
+  flex-shrink:0;position:relative;overflow:hidden;
+  border-bottom:1px solid var(--GLB)
 }
-#pflag{width:100%;height:104px;object-fit:cover;border-radius:10px;
-  margin-bottom:14px;box-shadow:0 4px 22px rgba(0,0,0,.6);border:1px solid var(--glb)}
-#pname{font-family:var(--fh);font-weight:900;font-size:1.9rem;letter-spacing:.04em;text-transform:uppercase;line-height:1}
-#pcap{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--grl);margin-top:4px;opacity:.85}
+#pflag-bg{
+  width:100%;height:130px;object-fit:cover;display:block;
+  filter:brightness(.55) saturate(.8)
+}
+#phero-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to bottom,transparent 20%,rgba(3,9,28,.98) 100%)
+}
+#phero-content{
+  position:absolute;bottom:0;left:0;right:0;padding:16px 20px 14px;
+  display:flex;align-items:flex-end;gap:12px
+}
+#pflag-thumb{
+  width:56px;height:40px;object-fit:cover;border-radius:5px;
+  border:1px solid var(--GLB);box-shadow:0 3px 12px rgba(0,0,0,.5);flex-shrink:0
+}
+#phero-text{flex:1;min-width:0}
+#pname{
+  font-family:var(--FH);font-weight:900;font-size:1.8rem;
+  letter-spacing:.04em;text-transform:uppercase;line-height:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+#pcap{
+  font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--G2);margin-top:3px;opacity:.9
+}
 
-/* stats */
-#pstats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px 16px 0;flex-shrink:0}
+/* ── STATS ── */
+#pstats{
+  flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;
+  gap:8px;padding:14px 14px 0
+}
 .sc{
-  background:var(--gls);border:1px solid var(--glb);border-radius:var(--rr);
-  padding:13px 11px;display:flex;flex-direction:column;gap:4px;
-  position:relative;overflow:hidden;transition:background .2s
+  background:var(--GLS);border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--RR);padding:12px 11px;
+  display:flex;flex-direction:column;gap:4px;
+  position:relative;overflow:hidden;transition:background .2s,border-color .2s;
+  cursor:default
 }
-.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,var(--grn),var(--bll));opacity:0;transition:opacity .3s}
-.sc:hover{background:rgba(255,255,255,.1)}
-.sc:hover::before{opacity:1}
-.sc .ico{font-size:1.25rem}
-.sc .sv{font-family:var(--fh);font-weight:700;font-size:1.45rem;letter-spacing:.02em}
-.sc .sl{font-size:.6rem;letter-spacing:.17em;text-transform:uppercase;color:rgba(244,247,255,.4)}
-
-/* barra peso */
-#pbar-wrap{flex-shrink:0;padding:12px 16px 0}
-#pbar-wrap label{font-size:.6rem;letter-spacing:.17em;text-transform:uppercase;color:rgba(244,247,255,.38);display:block;margin-bottom:5px}
-#pbar-track{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
-#pbar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--grn),var(--grl));transition:width .65s ease}
-
-/* parroquias */
-#ppar-wrap{flex:1;overflow-y:auto;padding:12px 16px;scrollbar-width:thin;scrollbar-color:var(--glb) transparent}
-#ppar-wrap::-webkit-scrollbar{width:4px}
-#ppar-wrap::-webkit-scrollbar-thumb{background:var(--glb);border-radius:2px}
-#ppar-title{font-family:var(--fh);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,247,255,.38);margin-bottom:8px}
-#ppar-list{display:flex;flex-direction:column;gap:4px}
-.par-item{
-  display:flex;align-items:center;gap:9px;
-  background:var(--gls);border:1px solid rgba(255,255,255,.08);
-  border-radius:8px;padding:8px 11px;
-  font-size:.8rem;font-weight:500;
-  transition:background .18s,border-color .18s
+.sc::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--G1),var(--B4));
+  transform:scaleX(0);transform-origin:left;transition:transform .35s
 }
-.par-item:hover{background:rgba(39,192,106,.08);border-color:rgba(39,192,106,.25)}
-.par-item .pi{width:7px;height:7px;border-radius:50%;background:var(--grl);flex-shrink:0}
+.sc:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18)}
+.sc:hover::after{transform:scaleX(1)}
+.sc .ico{font-size:1.2rem;line-height:1}
+.sc .sv{font-family:var(--FH);font-weight:700;font-size:1.45rem;color:var(--W0);letter-spacing:.02em;margin-top:2px}
+.sc .sl{font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--W2)}
 
-/* footer */
+/* ── WEIGHT BAR ── */
+#pbar-wrap{flex-shrink:0;padding:10px 14px 0}
+.pbar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.pbar-head label{font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--W2)}
+#pbar-pct{font-family:var(--FH);font-size:.85rem;font-weight:700;color:var(--G2)}
+#pbar-track{height:5px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}
+#pbar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--G1),var(--G2));width:0%;transition:width .7s cubic-bezier(.22,1,.36,1)}
+
+/* ── DIVIDER ── */
+.pdiv{flex-shrink:0;margin:12px 14px 0;height:1px;background:var(--GLB)}
+
+/* ── PARROQUIAS ── */
+#ppar-wrap{
+  flex:1;overflow-y:auto;padding:10px 14px 12px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent
+}
+#ppar-wrap::-webkit-scrollbar{width:3px}
+#ppar-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+#ppar-head{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px
+}
+#ppar-head .ph-icon{font-size:1rem}
+#ppar-head .ph-title{font-family:var(--FH);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--W2)}
+#ppar-head .ph-count{
+  margin-left:auto;background:rgba(39,192,106,.12);border:1px solid rgba(39,192,106,.25);
+  border-radius:20px;padding:1px 8px;
+  font-family:var(--FH);font-size:.7rem;color:var(--G2);letter-spacing:.05em
+}
+#ppar-list{display:flex;flex-direction:column;gap:3px}
+.par-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--GLS);border:1px solid rgba(255,255,255,.07);
+  border-radius:8px;padding:8px 12px;
+  transition:background .18s,border-color .18s,transform .18s;
+  cursor:default
+}
+.par-row:hover{background:rgba(39,192,106,.07);border-color:rgba(39,192,106,.2);transform:translateX(3px)}
+.par-row .pr-num{
+  width:20px;height:20px;border-radius:50%;
+  background:linear-gradient(135deg,var(--B3),var(--G0));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--FH);font-size:.65rem;font-weight:700;color:var(--W0);flex-shrink:0
+}
+.par-row .pr-name{font-size:.82rem;font-weight:500;color:var(--W0);flex:1}
+.par-row .pr-dot{width:6px;height:6px;border-radius:50%;background:var(--G2);flex-shrink:0;opacity:.6}
+
+/* ── FOOTER ── */
 #pftr{
-  flex-shrink:0;padding:12px 16px;border-top:1px solid var(--glb);
-  display:flex;align-items:center;gap:10px
+  flex-shrink:0;padding:10px 14px;border-top:1px solid var(--GLB);
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(90deg,rgba(27,138,76,.06),transparent)
 }
-#pftr img{height:34px;filter:drop-shadow(0 0 6px rgba(39,192,106,.35))}
-#pftr span{font-family:var(--fh);font-size:.75rem;letter-spacing:.13em;text-transform:uppercase;opacity:.45}
+#pftr img{height:32px;filter:drop-shadow(0 0 6px rgba(39,192,106,.35))}
+#pftr-txt{display:flex;flex-direction:column;gap:1px}
+#pftr-txt span{font-family:var(--FH);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--W2)}
+#pftr-txt small{font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--G2);opacity:.7}
 
-/* ─── TOOLTIP ────────────────────────────────────────────────── */
-.mtt{
-  background:rgba(3,12,36,.95)!important;border:1px solid rgba(39,192,106,.45)!important;
-  border-radius:8px!important;color:var(--wht)!important;
-  font-family:var(--fh)!important;font-weight:700!important;
-  font-size:.9rem!important;letter-spacing:.08em!important;text-transform:uppercase!important;
-  padding:5px 11px!important;white-space:nowrap!important;
-  box-shadow:0 4px 18px rgba(0,0,0,.55),0 0 14px rgba(39,192,106,.1)!important;
-  backdrop-filter:blur(8px)!important
+/* ══════════════════════ TOOLTIPS ════════════════════════════════ */
+.tt-mun{
+  background:rgba(3,9,28,.96)!important;border:1px solid rgba(39,192,106,.5)!important;
+  border-radius:8px!important;color:var(--W0)!important;
+  font-family:var(--FH)!important;font-weight:700!important;
+  font-size:.92rem!important;letter-spacing:.08em!important;text-transform:uppercase!important;
+  padding:5px 12px!important;white-space:nowrap!important;
+  box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 16px rgba(39,192,106,.12)!important;
+  backdrop-filter:blur(10px)!important
 }
-.leaflet-tooltip-top.mtt::before{border-top-color:rgba(39,192,106,.4)!important}
-.mtt-par{
-  background:rgba(3,12,36,.88)!important;border:1px solid rgba(90,130,255,.35)!important;
-  border-radius:7px!important;color:rgba(200,220,255,.85)!important;
-  font-family:var(--fb)!important;font-size:.72rem!important;font-weight:500!important;
-  padding:4px 10px!important;white-space:nowrap!important;
-  backdrop-filter:blur(6px)!important
+.leaflet-tooltip-top.tt-mun::before{border-top-color:rgba(39,192,106,.45)!important}
+.tt-par{
+  background:rgba(3,9,28,.9)!important;border:1px solid rgba(90,150,255,.35)!important;
+  border-radius:7px!important;color:rgba(200,220,255,.9)!important;
+  font-family:var(--FB)!important;font-size:.72rem!important;font-weight:500!important;
+  padding:4px 10px!important;white-space:nowrap!important;backdrop-filter:blur(8px)!important
 }
 
-/* ─── HINT ───────────────────────────────────────────────────── */
+/* ══════════════════════ HINT ════════════════════════════════════ */
 #hint{
-  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:rgba(3,12,36,.9);border:1px solid var(--glb);
-  border-radius:30px;padding:7px 20px;
-  font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;
-  opacity:.72;z-index:900;pointer-events:none;transition:opacity .6s;
-  backdrop-filter:blur(8px)
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:900;
+  background:rgba(3,9,28,.9);border:1px solid var(--GLB);
+  border-radius:30px;padding:7px 22px;
+  font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;
+  opacity:.75;pointer-events:none;transition:opacity .5s;
+  backdrop-filter:blur(10px);
+  display:flex;align-items:center;gap:8px
 }
+#hint::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--G2);animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 #hint.gone{opacity:0}
 
-/* ─── RESPONSIVE ─────────────────────────────────────────────── */
-@media(max-width:640px){
-  :root{--pw:100vw}
-  #panel{top:auto;bottom:calc(-68vh - 20px);right:0;height:68vh;
-    border-left:none;border-top:1px solid var(--glb);
-    border-radius:20px 20px 0 0;
-    transition:bottom .44s cubic-bezier(.22,1,.36,1)}
+/* ══════════════════════ RESPONSIVE ══════════════════════════════ */
+@media(max-width:660px){
+  :root{--PW:100vw}
+  #panel{top:auto;bottom:calc(-70vh - 20px);right:0;height:70vh;
+    border-left:none;border-top:1px solid var(--GLB);
+    border-radius:18px 18px 0 0;
+    transition:bottom .45s cubic-bezier(.22,1,.36,1)}
   #panel.open{bottom:0}
+  .hdr-pill:last-child,.hdr-pill:nth-child(2){display:none}
   .brand-txt b{font-size:1.05rem}
-  #lsw{bottom:10px;right:6px}
+  #lsw{bottom:8px;right:6px}
+  .lb{padding:6px 10px;font-size:.72rem}
 }
 </style>
 </head>
 <body>
 
-<!-- ── LOADER ───────────────────────────────────────────────── -->
+<!-- ════════════ LOADER ════════════════════════════════════════ -->
 <div id="loader">
-  <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="logo"/>
-  <div class="spin"></div>
-  <p id="loader-msg">Cargando capas electorales…</p>
-</div>
-
-<!-- ── HEADER ───────────────────────────────────────────────── -->
-<header id="hdr">
-  <div class="brand">
-    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo"/>
-    <div class="brand-txt">
-      <b>Concertación Carabobo</b>
-      <small>Mapa Electoral Estratégico 2025</small>
+  <div class="logo-wrap">
+    <div class="ring"></div>
+    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="logo"/>
+  </div>
+  <div id="loader-steps">
+    <p id="loader-msg">Inicializando sistema…</p>
+    <div class="step-dots">
+      <div class="step-dot active" id="dot0"></div>
+      <div class="step-dot" id="dot1"></div>
+      <div class="step-dot" id="dot2"></div>
     </div>
   </div>
-  <div class="hdr-stat">
-    <span class="v">1.663.942</span>
-    <span class="l">Electores · Estado Carabobo</span>
+</div>
+
+<!-- ════════════ HEADER ════════════════════════════════════════ -->
+<header id="hdr">
+  <div class="brand">
+    <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo Concertación Carabobo"/>
+    <div class="brand-txt">
+      <b>Concertación Carabobo</b>
+      <small>Mapa Electoral Estratégico · 2025</small>
+    </div>
+  </div>
+  <div class="hdr-pills">
+    <div id="map-mode-badge"><span class="dot"></span><span id="mode-label">Oscuro</span></div>
+    <div class="hdr-pill">
+      <span class="v">1.663.942</span>
+      <span class="l">Electores · Carabobo</span>
+    </div>
+    <div class="hdr-pill">
+      <span class="v">2.059</span>
+      <span class="l">Mesas · Carabobo</span>
+    </div>
   </div>
 </header>
 
-<!-- ── MAP ──────────────────────────────────────────────────── -->
+<!-- ════════════ MAP ═══════════════════════════════════════════ -->
 <div id="app"><div id="map"></div></div>
 
-<!-- ── LAYER SWITCHER ───────────────────────────────────────── -->
+<!-- ════════════ LAYER SWITCHER ═══════════════════════════════ -->
 <div id="lsw">
-  <button class="lb on" id="lb-dark" onclick="setTile('dark')"><span class="dot"></span>Oscuro</button>
-  <button class="lb"    id="lb-osm"  onclick="setTile('osm')"><span class="dot"></span>Mapa</button>
-  <button class="lb"    id="lb-sat"  onclick="setTile('sat')"><span class="dot"></span>Satélite</button>
-  <button class="lb"    id="lb-topo" onclick="setTile('topo')"><span class="dot"></span>Topográfico</button>
+  <button class="lb on" id="lb-dark" onclick="setTile('dark','Oscuro')"><span class="dot"></span>Oscuro</button>
+  <button class="lb"    id="lb-osm"  onclick="setTile('osm','Mapa')"><span class="dot"></span>Mapa</button>
+  <button class="lb"    id="lb-sat"  onclick="setTile('sat','Satélite')"><span class="dot"></span>Satélite</button>
+  <button class="lb"    id="lb-topo" onclick="setTile('topo','Topográfico')"><span class="dot"></span>Topográfico</button>
 </div>
 
-<!-- ── SIDE PANEL ───────────────────────────────────────────── -->
+<!-- ════════════ SIDE PANEL ═══════════════════════════════════ -->
 <div id="panel">
-  <button id="pcls" title="Cerrar">✕</button>
+  <button id="pcls" title="Cerrar panel">✕</button>
 
+  <!-- Hero con bandera -->
   <div id="phero">
-    <img id="pflag" src="" alt="Bandera"/>
-    <div id="pname">—</div>
-    <div id="pcap">Capital: —</div>
+    <img id="pflag-bg" src="" alt=""/>
+    <div id="phero-overlay"></div>
+    <div id="phero-content">
+      <img id="pflag-thumb" src="" alt="Bandera"/>
+      <div id="phero-text">
+        <div id="pname">Municipio</div>
+        <div id="pcap">Capital: —</div>
+      </div>
+    </div>
   </div>
 
+  <!-- Stats 2×2 -->
   <div id="pstats">
-    <div class="sc"><span class="ico">🗳️</span><span class="sv" id="sv-m">—</span><span class="sl">Mesas</span></div>
-    <div class="sc"><span class="ico">👥</span><span class="sv" id="sv-e">—</span><span class="sl">Electores</span></div>
-    <div class="sc"><span class="ico">📊</span><span class="sv" id="sv-p">—</span><span class="sl">% del Estado</span></div>
-    <div class="sc"><span class="ico">🏛️</span><span class="sv" id="sv-r">—</span><span class="sl">Elec/Mesa</span></div>
+    <div class="sc">
+      <span class="ico">🗳️</span>
+      <span class="sv" id="sv-m">—</span>
+      <span class="sl">Mesas electorales</span>
+    </div>
+    <div class="sc">
+      <span class="ico">👥</span>
+      <span class="sv" id="sv-e">—</span>
+      <span class="sl">Total electores</span>
+    </div>
+    <div class="sc">
+      <span class="ico">📊</span>
+      <span class="sv" id="sv-p">—</span>
+      <span class="sl">% del estado</span>
+    </div>
+    <div class="sc">
+      <span class="ico">⚡</span>
+      <span class="sv" id="sv-r">—</span>
+      <span class="sl">Electores / mesa</span>
+    </div>
   </div>
 
+  <!-- Barra peso electoral -->
   <div id="pbar-wrap">
-    <label>Peso electoral en Carabobo</label>
-    <div id="pbar-track"><div id="pbar-fill" style="width:0%"></div></div>
+    <div class="pbar-head">
+      <label>Peso electoral en Carabobo</label>
+      <span id="pbar-pct">0%</span>
+    </div>
+    <div id="pbar-track"><div id="pbar-fill"></div></div>
   </div>
 
+  <div class="pdiv"></div>
+
+  <!-- Parroquias -->
   <div id="ppar-wrap">
-    <div id="ppar-title">Parroquias del municipio</div>
-    <div id="ppar-list"></div>
+    <div id="ppar-head">
+      <span class="ph-icon">📍</span>
+      <span class="ph-title">Parroquias</span>
+      <span class="ph-count" id="par-count">0</span>
+    </div>
+    <div id="ppar-list"><!-- se rellena dinámicamente --></div>
   </div>
 
+  <!-- Footer -->
   <div id="pftr">
     <img src="https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/logo_concertacion_carabobo-removebg-preview.png?raw=true" alt="Logo"/>
-    <span>Concertación Carabobo · 2025</span>
+    <div id="pftr-txt">
+      <span>Concertación Carabobo</span>
+      <small>Sistema Electoral Estratégico</small>
+    </div>
   </div>
 </div>
 
+<!-- ════════════ HINT ══════════════════════════════════════════ -->
 <div id="hint">Selecciona un municipio para ver su información</div>
 
-<!-- ── LEAFLET ───────────────────────────────────────────────── -->
+<!-- ════════════ LEAFLET ═══════════════════════════════════════ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ══════════════════════════════════════════════════════════════════
-   DATOS COMPLETOS POR MUNICIPIO (+ parroquias)
-══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   1. DATOS COMPLETOS DE MUNICIPIOS
+══════════════════════════════════════════════════════════════ */
 const DATA = {
-  "Valencia": {
-    capital:"Valencia", mesas:742, elec:613670,
-    lat:10.153985, lng:-67.988735,
+  "Valencia":{
+    capital:"Valencia",mesas:742,elec:613670,
+    lat:10.153985,lng:-67.988735,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Valencia.jpg?raw=true",
     parroquias:["Candelaria","Catedral","El Socorro","Miguel Peña","Rafael Urdaneta","San Blas","San José","Santa Rosa","Negro Primero"]
   },
-  "Diego Ibarra": {
-    capital:"Mariara", mesas:90, elec:71951,
-    lat:10.288812, lng:-67.721095,
+  "Diego Ibarra":{
+    capital:"Mariara",mesas:90,elec:71951,
+    lat:10.288812,lng:-67.721095,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Diego%20Ibarra.jpg?raw=true",
     parroquias:["Mariara","Aguas Calientes"]
   },
-  "Carlos Arvelo": {
-    capital:"Güigüe", mesas:147, elec:107312,
-    lat:10.083036, lng:-67.780881,
+  "Carlos Arvelo":{
+    capital:"Güigüe",mesas:147,elec:107312,
+    lat:10.083036,lng:-67.780881,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/carlos%20arvelo.jpg?raw=true",
     parroquias:["Güigüe","Belén","Tacarigua"]
   },
-  "Guacara": {
-    capital:"Guacara", mesas:153, elec:131072,
-    lat:10.263974, lng:-67.890448,
+  "Guacara":{
+    capital:"Guacara",mesas:153,elec:131072,
+    lat:10.263974,lng:-67.890448,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Guacara.jpg?raw=true",
     parroquias:["Guacara","Ciudad Alianza","Yagua"]
   },
-  "Juan José Mora": {
-    capital:"Morón", mesas:78, elec:53965,
-    lat:10.491015, lng:-68.198705,
+  "Juan José Mora":{
+    capital:"Morón",mesas:78,elec:53965,
+    lat:10.491015,lng:-68.198705,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Juan%20Jose%20Mora.jpg?raw=true",
     parroquias:["Morón","Urama"]
   },
-  "Libertador": {
-    capital:"Tocuyito", mesas:159, elec:124901,
-    lat:10.015869, lng:-68.154266,
+  "Libertador":{
+    capital:"Tocuyito",mesas:159,elec:124901,
+    lat:10.015869,lng:-68.154266,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Libertador.jpg?raw=true",
     parroquias:["Tocuyito","Independencia"]
   },
-  "Los Guayos": {
-    capital:"Los Guayos", mesas:131, elec:106124,
-    lat:10.172879, lng:-67.925227,
+  "Los Guayos":{
+    capital:"Los Guayos",mesas:131,elec:106124,
+    lat:10.172879,lng:-67.925227,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Los%20Guayos.jpg?raw=true",
     parroquias:["Los Guayos"]
   },
-  "Miranda": {
-    capital:"Miranda", mesas:31, elec:22578,
-    lat:10.149892, lng:-68.401530,
+  "Miranda":{
+    capital:"Miranda",mesas:31,elec:22578,
+    lat:10.149892,lng:-68.401530,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Miranda.jpg?raw=true",
     parroquias:["Miranda"]
   },
-  "Montalban": {
-    capital:"Montalbán", mesas:24, elec:19238,
-    lat:10.213548, lng:-68.325858,
+  "Montalbán":{
+    capital:"Montalbán",mesas:24,elec:19238,
+    lat:10.213548,lng:-68.325858,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Montalban.jpg?raw=true",
     parroquias:["Montalbán"]
   },
-  "Naguanagua": {
-    capital:"Naguanagua", mesas:127, elec:106869,
-    lat:10.268467, lng:-68.015500,
+  "Naguanagua":{
+    capital:"Naguanagua",mesas:127,elec:106869,
+    lat:10.268467,lng:-68.015500,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Naguanagua.jpg?raw=true",
     parroquias:["Naguanagua"]
   },
-  "Puerto Cabello": {
-    capital:"Puerto Cabello", mesas:188, elec:150415,
-    lat:10.471149, lng:-68.024911,
+  "Puerto Cabello":{
+    capital:"Puerto Cabello",mesas:188,elec:150415,
+    lat:10.471149,lng:-68.024911,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Puerto%20Cabello.jpg?raw=true",
     parroquias:["Bartolomé Salom","Democracia","Fraternidad","Goaigoaza","Juan José Flores","Unión","Borburata","Patanemo"]
   },
-  "San Diego": {
-    capital:"San Diego", mesas:81, elec:72497,
-    lat:10.258939, lng:-67.963485,
+  "San Diego":{
+    capital:"San Diego",mesas:81,elec:72497,
+    lat:10.258939,lng:-67.963485,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20diego.jpg?raw=true",
     parroquias:["San Diego"]
   },
-  "San Joaquin": {
-    capital:"San Joaquín", mesas:56, elec:45866,
-    lat:10.259778, lng:-67.801935,
+  "San Joaquín":{
+    capital:"San Joaquín",mesas:56,elec:45866,
+    lat:10.259778,lng:-67.801935,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/San%20Joaquin.jpg?raw=true",
     parroquias:["San Joaquín"]
   },
-  "Bejuma": {
-    capital:"Bejuma", mesas:52, elec:37484,
-    lat:10.176950, lng:-68.259151,
+  "Bejuma":{
+    capital:"Bejuma",mesas:52,elec:37484,
+    lat:10.176950,lng:-68.259151,
     flag:"https://github.com/jhonmalorne/concertacionCaraboboMapaElectoral/blob/main/Bejuma.jpg?raw=true",
     parroquias:["Simón Bolívar","Canoabo","Bejuma"]
   },
 };
 
-// Alias de normalización
-const ALIAS = {
-  "montalban":"Montalban","montalbán":"Montalban",
-  "san joaquín":"San Joaquin","san joaquin":"San Joaquin",
-  "juan josé mora":"Juan José Mora","juan jose mora":"Juan José Mora",
+/* Alias para nombres que vienen distintos del GeoJSON */
+const ALIAS_MAP = {
+  "montalban":"Montalbán","montalbán":"Montalbán",
+  "san joaquin":"San Joaquín","san joaquín":"San Joaquín",
+  "juan jose mora":"Juan José Mora","juan josé mora":"Juan José Mora",
+  "los guayos":"Los Guayos",
 };
 
-const TOTAL = 1663942;
+const TOTAL_ELEC = 1663942;
 
-/* ══════════════════════════════════════════════════════════════════
-   TILES / CAPAS BASE
-══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   2. MAPA BASE
+══════════════════════════════════════════════════════════════ */
 const TILES = {
   dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}),
-  osm:  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:19}),
+  osm:  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}),
   sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}),
   topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:17}),
 };
 
-const map = L.map('map',{center:[10.22,-68.05],zoom:10,zoomControl:true,attributionControl:false,layers:[TILES.dark]});
+const map = L.map('map',{
+  center:[10.22,-68.08],zoom:10,
+  zoomControl:true,attributionControl:false,
+  layers:[TILES.dark]
+});
 map.zoomControl.setPosition('topright');
 
-let curTile='dark';
-function setTile(name){
+let curTile = 'dark';
+function setTile(name, label){
   map.removeLayer(TILES[curTile]);
   map.addLayer(TILES[name]);
   TILES[name].bringToBack();
-  [munLayer,parLayer].forEach(l=>{if(l) l.bringToFront()});
-  curTile=name;
+  bringLayersToFront();
+  curTile = name;
   document.querySelectorAll('.lb').forEach(b=>b.classList.remove('on'));
   document.getElementById('lb-'+name).classList.add('on');
+  document.getElementById('mode-label').textContent = label;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   ESTILOS VECTORIALES
-══════════════════════════════════════════════════════════════════ */
-const ST = {
-  mun_base: {color:'#27c06a',weight:2,fillColor:'#1a3a8f',fillOpacity:0.52,opacity:1},
-  mun_hov:  {color:'#5b9fff',weight:3,  fillColor:'#2060d8',fillOpacity:0.78,opacity:1},
-  mun_sel:  {color:'#27c06a',weight:3.5,fillColor:'#1b8a4c',fillOpacity:0.72,opacity:1},
-  mun_dim:  {color:'#0d2060',weight:1,  fillColor:'#040e28',fillOpacity:0.2, opacity:0.3},
-  par_base: {color:'rgba(100,160,255,0.0)',weight:0,fillColor:'transparent',fillOpacity:0},
-  par_sel:  {color:'#5b9fff',weight:1.5,fillColor:'rgba(80,160,255,0.18)',fillOpacity:1,opacity:0.9,dashArray:'4 4'},
-};
+function bringLayersToFront(){
+  if(parLayer) parLayer.bringToFront();
+  if(munLayer) munLayer.bringToFront();
+}
 
-let selMun=null, munLayer=null, parLayer=null, curMunKey=null;
+/* ══════════════════════════════════════════════════════════════
+   3. ESTILOS VECTORIALES
+══════════════════════════════════════════════════════════════ */
+function styleMunBase(){
+  return {color:'#27c06a',weight:1.8,fillColor:'#1a3a8f',fillOpacity:0.5,opacity:1,lineCap:'round',lineJoin:'round'}
+}
+function styleMunHover(){
+  return {color:'#6fb8ff',weight:2.8,fillColor:'#1e55d8',fillOpacity:0.72,opacity:1}
+}
+function styleMunSel(){
+  return {color:'#27c06a',weight:3,fillColor:'#1b8a4c',fillOpacity:0.68,opacity:1}
+}
+function styleMunDim(){
+  return {color:'rgba(10,36,99,0.4)',weight:1,fillColor:'#030b1e',fillOpacity:0.18,opacity:0.3}
+}
+function styleParBase(){
+  return {color:'transparent',weight:0,fillColor:'transparent',fillOpacity:0}
+}
+function styleParSel(){
+  return {color:'rgba(100,170,255,0.8)',weight:1.5,fillColor:'rgba(60,130,255,0.15)',fillOpacity:1,opacity:1,dashArray:'5 4'}
+}
 
-/* ══════════════════════════════════════════════════════════════════
-   NORMALIZACIÓN
-══════════════════════════════════════════════════════════════════ */
-function norm(s){return(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+let selMunLayer = null;
+let munLayer    = null;
+let parLayer    = null;
 
-function matchKey(raw){
-  if(!raw) return null;
-  const lo=norm(raw);
-  if(ALIAS[lo]) return ALIAS[lo];
-  for(const k of Object.keys(DATA)){if(norm(k)===lo) return k}
-  for(const k of Object.keys(DATA)){if(lo.includes(norm(k))||norm(k).includes(lo)) return k}
+/* ══════════════════════════════════════════════════════════════
+   4. NORMALIZACIÓN DE NOMBRES
+══════════════════════════════════════════════════════════════ */
+function norm(s){
+  return (s||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+function matchDataKey(rawName){
+  if(!rawName) return null;
+  const lo = norm(rawName);
+  // alias exacto
+  if(ALIAS_MAP[lo]) return ALIAS_MAP[lo];
+  // exacto contra DATA
+  for(const k of Object.keys(DATA)){
+    if(norm(k)===lo) return k;
+  }
+  // parcial
+  for(const k of Object.keys(DATA)){
+    const kn = norm(k);
+    if(lo.includes(kn)||kn.includes(lo)) return k;
+  }
   return null;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   PANEL LATERAL
-══════════════════════════════════════════════════════════════════ */
-const panel=document.getElementById('panel');
-const hint=document.getElementById('hint');
-let hintGone=false;
+/* ══════════════════════════════════════════════════════════════
+   5. PANEL LATERAL
+══════════════════════════════════════════════════════════════ */
+const panel = document.getElementById('panel');
+const hint  = document.getElementById('hint');
+let hintGone = false;
 
-function n(v){return v.toLocaleString('es-VE')}
+function fmt(n){ return Number(n).toLocaleString('es-VE') }
 
 function openPanel(key){
-  const d=DATA[key]; if(!d) return;
-  document.getElementById('pflag').src=d.flag;
-  document.getElementById('pname').textContent=key;
-  document.getElementById('pcap').textContent='Capital: '+d.capital;
-  document.getElementById('sv-m').textContent=n(d.mesas);
-  document.getElementById('sv-e').textContent=n(d.elec);
-  const pct=((d.elec/TOTAL)*100);
-  document.getElementById('sv-p').textContent=pct.toFixed(1)+'%';
-  document.getElementById('sv-r').textContent=n(Math.round(d.elec/d.mesas));
-  // pct real escalado: max municipio=Valencia~36%, escalar a 100%
-  document.getElementById('pbar-fill').style.width=Math.min(pct/37*100,100)+'%';
-  // parroquias
-  const list=document.getElementById('ppar-list');
-  list.innerHTML='';
-  (d.parroquias||[]).forEach(p=>{
-    const el=document.createElement('div');
-    el.className='par-item';
-    el.innerHTML=`<span class="pi"></span><span>${p}</span>`;
-    list.appendChild(el);
+  const d = DATA[key];
+  if(!d){ console.warn('No data for:', key); return; }
+
+  // Bandera (doble: fondo desaturado + thumb nítido)
+  document.getElementById('pflag-bg').src    = d.flag;
+  document.getElementById('pflag-thumb').src = d.flag;
+  document.getElementById('pname').textContent = key;
+  document.getElementById('pcap').textContent  = 'Capital: ' + d.capital;
+
+  // Stats
+  document.getElementById('sv-m').textContent = fmt(d.mesas);
+  document.getElementById('sv-e').textContent = fmt(d.elec);
+  const pct = (d.elec / TOTAL_ELEC) * 100;
+  document.getElementById('sv-p').textContent = pct.toFixed(1) + '%';
+  document.getElementById('sv-r').textContent = fmt(Math.round(d.elec / d.mesas));
+
+  // Barra – Valencia es el max (36.9%), escalar a 100
+  const barW = Math.min((pct / 36.9) * 100, 100);
+  document.getElementById('pbar-fill').style.width = barW + '%';
+  document.getElementById('pbar-pct').textContent  = pct.toFixed(1) + '%';
+
+  // Parroquias
+  const list = document.getElementById('ppar-list');
+  list.innerHTML = '';
+  const pars = d.parroquias || [];
+  document.getElementById('par-count').textContent = pars.length;
+  pars.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'par-row';
+    row.innerHTML = `<span class="pr-num">${i+1}</span><span class="pr-name">${p}</span><span class="pr-dot"></span>`;
+    // Animación escalonada
+    row.style.opacity = '0';
+    row.style.transform = 'translateX(10px)';
+    list.appendChild(row);
+    setTimeout(()=>{
+      row.style.transition = 'opacity .3s ease, transform .3s ease';
+      row.style.opacity = '1'; row.style.transform = 'translateX(0)';
+    }, 50 + i * 40);
   });
+
   panel.classList.add('open');
-  if(!hintGone){hint.classList.add('gone');hintGone=true}
+  if(!hintGone){ hint.classList.add('gone'); hintGone = true; }
 }
 
 function closePanel(){
   panel.classList.remove('open');
-  if(munLayer) munLayer.eachLayer(l=>l.setStyle(ST.mun_base));
-  if(parLayer) parLayer.eachLayer(l=>l.setStyle(ST.par_base));
-  selMun=null; curMunKey=null;
+  if(munLayer) munLayer.eachLayer(l => l.setStyle(styleMunBase()));
+  if(parLayer) parLayer.eachLayer(l => l.setStyle(styleParBase()));
+  selMunLayer = null;
 }
-document.getElementById('pcls').addEventListener('click',closePanel);
+document.getElementById('pcls').addEventListener('click', closePanel);
 
-/* ══════════════════════════════════════════════════════════════════
-   INTERACCIONES MUNICIPIOS
-══════════════════════════════════════════════════════════════════ */
-function onEachMun(feat,layer){
-  const raw=feat.properties.NAME_2||feat.properties.name||'';
-  const key=matchKey(raw)||raw;
+/* ══════════════════════════════════════════════════════════════
+   6. INTERACCIÓN CON MUNICIPIOS
+══════════════════════════════════════════════════════════════ */
+function onEachMun(feat, layer){
+  // Intentar todos los campos posibles del GeoJSON
+  const raw = feat.properties.NAME_2
+           || feat.properties.name
+           || feat.properties.municipio
+           || feat.properties.MUNICIPIO
+           || feat.properties.NOM_MUN
+           || '';
+  const key = matchDataKey(raw) || raw;
 
-  layer.bindTooltip(key,{className:'mtt',sticky:true,offset:[14,0]});
+  // Tooltip elegante
+  layer.bindTooltip(key, {className:'tt-mun', sticky:true, offset:[14,0]});
 
-  layer.on('mouseover',function(){
-    if(this===selMun) return;
-    this.setStyle(ST.mun_hov); this.bringToFront();
+  layer.on('mouseover', function(){
+    if(this === selMunLayer) return;
+    this.setStyle(styleMunHover());
+    this.bringToFront();
+    this.getTooltip() && this.openTooltip();
   });
-  layer.on('mouseout',function(){
-    if(this===selMun) return;
-    this.setStyle(selMun?ST.mun_dim:ST.mun_base);
+
+  layer.on('mouseout', function(){
+    if(this === selMunLayer) return;
+    this.setStyle(selMunLayer ? styleMunDim() : styleMunBase());
   });
-  layer.on('click',function(e){
+
+  layer.on('click', function(e){
     L.DomEvent.stopPropagation(e);
-    if(selMun&&selMun!==this) selMun.setStyle(ST.mun_dim);
-    selMun=this; curMunKey=key;
-    munLayer.eachLayer(l=>{if(l!==selMun) l.setStyle(ST.mun_dim)});
-    selMun.setStyle(ST.mun_sel); selMun.bringToFront();
-    map.fitBounds(selMun.getBounds(),{padding:[60,60],maxZoom:13});
-    // resaltar parroquias del municipio
+
+    // Resetear anterior seleccionado
+    if(selMunLayer && selMunLayer !== this){
+      selMunLayer.setStyle(styleMunDim());
+    }
+    selMunLayer = this;
+
+    // Dim todos, highlight seleccionado
+    munLayer.eachLayer(l => { if(l !== selMunLayer) l.setStyle(styleMunDim()); });
+    selMunLayer.setStyle(styleMunSel());
+    selMunLayer.bringToFront();
+
+    // Zoom suave
+    map.fitBounds(selMunLayer.getBounds(), {padding:[60,60], maxZoom:13, animate:true});
+
+    // Resaltar parroquias del municipio
     highlightParroquias(key);
-    const mk=matchKey(raw); if(mk) openPanel(mk);
+
+    // Abrir panel
+    const dataKey = matchDataKey(raw);
+    if(dataKey){
+      openPanel(dataKey);
+    } else {
+      console.warn('Municipio sin datos:', raw, '→ key:', key);
+    }
   });
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   RESALTADO DE PARROQUIAS
-══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   7. INTERACCIÓN CON PARROQUIAS
+══════════════════════════════════════════════════════════════ */
+function onEachPar(feat, layer){
+  const name = feat.properties.parroquia
+             || feat.properties.PARROQUIA
+             || feat.properties.nombre
+             || feat.properties.NOMBRE
+             || feat.properties.NAME_3
+             || feat.properties.name
+             || 'Parroquia';
+  layer.bindTooltip(name, {className:'tt-par', sticky:true, offset:[10,0]});
+}
+
 function highlightParroquias(munKey){
   if(!parLayer) return;
-  const munNorm=norm(munKey);
-  parLayer.eachLayer(l=>{
-    // El GeoJSON de parroquias debe tener municipio en properties
-    const pMun=norm(
-      l.feature.properties.municipio||
-      l.feature.properties.MUNICIPIO||
-      l.feature.properties.NAME_2||
-      l.feature.properties.mun||''
-    );
-    const match=pMun===munNorm||pMun.includes(munNorm)||munNorm.includes(pMun);
-    l.setStyle(match?ST.par_sel:ST.par_base);
-    if(match) l.bringToFront();
+  const munNorm = norm(munKey);
+  parLayer.eachLayer(l => {
+    const p = l.feature.properties;
+    // Probar múltiples campos donde puede estar el municipio en el GeoJSON de parroquias
+    const pMunRaw = p.municipio||p.MUNICIPIO||p.NAME_2||p.mun||p.MUN||p.municipio_nombre||'';
+    const pMunNorm = norm(pMunRaw);
+    const isMatch = pMunNorm !== '' &&
+      (pMunNorm === munNorm || pMunNorm.includes(munNorm) || munNorm.includes(pMunNorm));
+    l.setStyle(isMatch ? styleParSel() : styleParBase());
+    if(isMatch) l.bringToFront();
   });
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   INTERACCIONES PARROQUIAS
-══════════════════════════════════════════════════════════════════ */
-function onEachPar(feat,layer){
-  const name=feat.properties.parroquia||feat.properties.PARROQUIA||
-             feat.properties.NAME_3||feat.properties.name||'Parroquia';
-  layer.bindTooltip(name,{className:'mtt-par',sticky:true,offset:[10,0]});
+/* ══════════════════════════════════════════════════════════════
+   8. CARGA Y PROCESO DE GEOJSON
+══════════════════════════════════════════════════════════════ */
+/* URLs raw de GitHub (ambas en tu repo) */
+const URL_MUN = 'https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/20fa810cbe0cf9a47bf6ea735241492e515fd0b6/ven_admin2.json';
+const URL_PAR = 'https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/2bcdf9a99688ba0458d1796b8465dcb0d2f42b61/parroquias_carabobo.geojson.json';
+
+let loaded = 0;
+const TOTAL_LOADS = 2;
+
+function checkAllLoaded(){
+  loaded++;
+  setDot(loaded - 1);
+  if(loaded >= TOTAL_LOADS){
+    bringLayersToFront();
+    setTimeout(hideLoader, 500);
+  }
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   CARGA DE DATOS
-══════════════════════════════════════════════════════════════════ */
-const MUN_URL = 'https://raw.githubusercontent.com/jhonmalorne/concertacionCaraboboMapaElectoral/20fa810cbe0cf9a47bf6ea735241492e515fd0b6/ven_admin2.json';
-const PAR_URL = 'https://github.com/jhonmalorne/CoordinacionRegional/blob/3a2113a49d74493343291f7437e81e62feeeb535/parroquias_carabobo.geojson.json';
+function setDot(i){
+  const d = document.getElementById('dot'+i);
+  if(d) d.classList.add('active');
+}
 
-let loadedCount=0;
-function onLoaded(){
-  loadedCount++;
-  if(loadedCount>=2) hideLoader();
+function setLoaderMsg(txt){
+  document.getElementById('loader-msg').textContent = txt;
 }
 
 function hideLoader(){
-  const l=document.getElementById('loader');
+  const l = document.getElementById('loader');
   l.classList.add('done');
-  setTimeout(()=>{if(l.parentNode)l.remove()},700);
+  setTimeout(()=>{ if(l.parentNode) l.remove(); }, 800);
 }
 
-function setMsg(t){document.getElementById('loader-msg').textContent=t}
+/* ── MUNICIPIOS ── */
+setLoaderMsg('Cargando municipios de Carabobo…');
+fetch(URL_MUN)
+  .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(data => {
+    setLoaderMsg('Procesando municipios…');
 
-// ── Municipios
-setMsg('Cargando municipios…');
-fetch(MUN_URL)
-  .then(r=>{if(!r.ok) throw 0; return r.json()})
-  .then(data=>{
-    const feats=data.features.filter(f=>{
-      const n1=(f.properties.NAME_1||f.properties.adm1||'').toLowerCase();
-      return n1.includes('carabobo');
+    /* Filtrar Carabobo - probar todos los campos posibles */
+    let feats = data.features.filter(f => {
+      const p = f.properties;
+      const s = (p.NAME_1||p.adm1||p.estado||p.ESTADO||'').toLowerCase();
+      return s.includes('carabobo');
     });
-    const col={type:'FeatureCollection',features:feats.length?feats:data.features};
-    munLayer=L.geoJSON(col,{style:()=>ST.mun_base,onEachFeature:onEachMun}).addTo(map);
-    munLayer.bringToFront();
-    map.fitBounds(munLayer.getBounds(),{padding:[28,28]});
-    onLoaded();
+
+    /* Si el filtro no funcionó, usar todo (puede que el archivo ya sea solo Carabobo) */
+    if(feats.length === 0){
+      console.warn('Filtro NAME_1 no encontró Carabobo – usando todos los features del archivo');
+      feats = data.features;
+    }
+
+    console.log(`Municipios cargados: ${feats.length}`, feats.map(f=>f.properties.NAME_2||f.properties.name));
+
+    munLayer = L.geoJSON(
+      {type:'FeatureCollection', features: feats},
+      {style: styleMunBase, onEachFeature: onEachMun}
+    ).addTo(map);
+
+    /* Ajustar vista */
+    if(feats.length > 0){
+      map.fitBounds(munLayer.getBounds(), {padding:[32,32], animate:true});
+    }
+    checkAllLoaded();
   })
-  .catch(()=>{
-    // Fallback marcadores
-    Object.entries(DATA).forEach(([key,d])=>{
+  .catch(err => {
+    console.error('Error municipios:', err);
+    /* Fallback: marcadores exactos */
+    Object.entries(DATA).forEach(([k,d])=>{
+      const r = Math.max(10, Math.sqrt(d.elec/900));
       L.circleMarker([d.lat,d.lng],{
-        radius:Math.max(10,Math.sqrt(d.elec/800)),
-        color:'#27c06a',weight:2,fillColor:'#1a3a8f',fillOpacity:0.75
+        radius:r,color:'#27c06a',weight:2,
+        fillColor:'#1a3a8f',fillOpacity:0.7
       }).addTo(map)
-       .bindTooltip(key,{className:'mtt',sticky:true})
-       .on('click',()=>{map.setView([d.lat,d.lng],12);openPanel(key)});
+       .bindTooltip(k,{className:'tt-mun',sticky:true})
+       .on('click', e=>{ L.DomEvent.stopPropagation(e); map.setView([d.lat,d.lng],12); openPanel(k); });
     });
-    onLoaded();
+    map.fitBounds(Object.values(DATA).map(d=>[d.lat,d.lng]),{padding:[40,40]});
+    checkAllLoaded();
   });
 
-// ── Parroquias
-setMsg('Cargando parroquias…');
-fetch(PAR_URL)
-  .then(r=>{if(!r.ok) throw 0; return r.json()})
-  .then(data=>{
-    parLayer=L.geoJSON(data,{style:()=>ST.par_base,onEachFeature:onEachPar}).addTo(map);
-    onLoaded();
+/* ── PARROQUIAS ── */
+setLoaderMsg('Cargando parroquias…');
+fetch(URL_PAR)
+  .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(data => {
+    setLoaderMsg('Procesando parroquias…');
+    console.log('Parroquias – primer feature props:', data.features[0]?.properties);
+
+    parLayer = L.geoJSON(data, {
+      style: styleParBase,
+      onEachFeature: onEachPar
+    }).addTo(map);
+
+    checkAllLoaded();
   })
-  .catch(()=>{
-    // Parroquias como marcadores si falla el GeoJSON
-    Object.entries(DATA).forEach(([munKey,d])=>{
-      (d.parroquias||[]).forEach(pName=>{
-        // Marcar en la capital del municipio (aproximación)
-        L.circleMarker([d.lat,d.lng],{
-          radius:4,color:'#5b9fff',weight:1,fillColor:'rgba(80,160,255,0.3)',fillOpacity:1
-        }).addTo(map).bindTooltip(pName,{className:'mtt-par',sticky:true});
-      });
+  .catch(err => {
+    console.error('Error parroquias:', err);
+    /* Fallback: marcadores de parroquias */
+    const PAR_COORDS = {
+      "Candelaria":[10.17594,-68.00503],"Catedral":[10.18493,-68.00128],
+      "El Socorro":[10.18386,-68.00761],"Miguel Peña":[10.14293,-68.02969],
+      "Rafael Urdaneta":[10.14106,-67.95618],"San Blas":[10.18110,-67.99256],
+      "San José":[10.20919,-68.00846],"Santa Rosa":[10.16238,-67.99439],
+      "Negro Primero":[9.91071,-67.93877],
+      "Mariara":[10.28847,-67.72075],"Aguas Calientes":[10.28745,-67.69597],
+      "Güigüe":[10.08287,-67.78080],"Belén":[9.98877,-67.68859],"Tacarigua":[10.08535,-67.91595],
+      "Guacara":[10.22873,-67.86457],"Ciudad Alianza":[10.20400,-67.90092],"Yagua":[10.25115,-67.91098],
+      "Morón":[10.49075,-68.19917],"Urama":[10.45650,-68.32470],
+      "Tocuyito":[10.10690,-68.08101],"Independencia":[10.01373,-68.15577],
+      "Los Guayos":[10.17288,-67.92523],"Miranda":[10.14989,-68.40153],
+      "Montalbán":[10.21355,-68.32586],"Naguanagua":[10.26847,-68.01550],
+      "Bartolomé Salom":[10.47000,-68.03308],"Democracia":[10.39559,-68.10520],
+      "Fraternidad":[10.46585,-68.01301],"Goaigoaza":[10.44448,-68.06252],
+      "Juan José Flores":[10.47510,-68.09614],"Unión":[10.47698,-68.00740],
+      "Borburata":[10.44421,-67.96310],"Patanemo":[10.41527,-67.90843],
+      "San Diego":[10.25894,-67.96348],"San Joaquín":[10.25978,-67.80194],
+      "Simón Bolívar":[10.18918,-68.17656],"Canoabo":[10.31110,-68.28032],"Bejuma":[10.17704,-68.25938]
+    };
+    Object.entries(PAR_COORDS).forEach(([name,coords])=>{
+      L.circleMarker(coords,{radius:4,color:'#5b9fff',weight:1.2,fillColor:'rgba(60,130,255,0.3)',fillOpacity:1})
+       .addTo(map).bindTooltip(name,{className:'tt-par',sticky:true});
     });
-    onLoaded();
+    checkAllLoaded();
   });
 
-// Click fuera → cerrar
-map.on('click',()=>closePanel());
+/* Click en fondo del mapa → cerrar panel */
+map.on('click', ()=>{ closePanel(); });
 </script>
 </body>
 </html>
